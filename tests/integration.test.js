@@ -111,8 +111,10 @@ for (const language of ['ja', 'en']) {
       assert.deepEqual(after.report, before.report);
       assert.deepEqual(after.evidence, before.evidence);
       assert.equal(after.expanded, before.expanded);
-      assert.equal(after.feedback.score, 100);
-      assert.equal(after.completion.feedback.score, 100);
+      assert.equal(after.feedback.passed, true);
+      assert.equal(after.completion.feedback.passed, true);
+      assert.equal(Object.hasOwn(after.feedback, 'score'), false);
+      assert.equal(Object.hasOwn(after.completion.feedback, 'score'), false);
     }
     assert.deepEqual(E.validateProgress(clone(restored), C), restored);
   });
@@ -181,6 +183,65 @@ test('completed actual cases retain valid snapshots after a failed review attemp
     assert.equal(record.completion.feedback.passed, true);
     assert.equal(record.report.facts, '復習中の下書きを保存します。');
   }
+});
+
+test('v0.1.0 scored completion saves still restore and discard legacy scores', () => {
+  // Frozen legacy decisions and evidence IDs deliberately do not use the current answer data.
+  const oldCases = [
+    ['tutorial', 'unknown', 'low', 'verify', '001', ['tutorial-failure'], '2026-10-14T09:00:00.000Z', '2026-10-14T09:30:00.000Z'],
+    ['auth-chain', 'incident', 'high', 'escalate', '001', ['auth-chain-fail-1', 'auth-chain-success', 'auth-chain-sudo'], '2026-10-15T10:00:00.000Z', '2026-10-15T10:40:00.000Z'],
+    ['approved-admin', 'benign', 'low', 'monitor', '002', ['approved-admin-created', 'approved-admin-added', 'approved-admin-removed'], '2026-10-16T11:00:00.000Z', '2026-10-16T11:40:00.000Z'],
+    ['service-persistence', 'incident', 'high', 'escalate', '002', ['service-persistence-process', 'service-persistence-installed'], '2026-10-17T12:00:00.000Z', '2026-10-17T12:40:00.000Z'],
+    ['collection-gap', 'unknown', 'medium', 'verify', '003', ['collection-gap-last', 'collection-gap-disconnected'], '2026-10-18T13:00:00.000Z', '2026-10-18T13:40:00.000Z'],
+    ['mixed-auth', 'benign', 'low', 'monitor', '002', ['mixed-auth-logon', 'mixed-auth-service', 'mixed-auth-failure-1'], '2026-10-19T14:00:00.000Z', '2026-10-19T14:40:00.000Z'],
+    ['fim-change', 'incident', 'high', 'escalate', '001', ['fim-change-command', 'fim-change-config', 'fim-change-web'], '2026-10-20T15:00:00.000Z', '2026-10-20T15:40:00.000Z']
+  ];
+  const legacy = { format: 'wazuhroom-save', version: 1, dataset: 'wazuhroom-1', language: 'en', activeCaseId: 'fim-change', records: {} };
+  for (const [id, verdict, priority, action, target, evidence, from, to] of oldCases) {
+    const record = {
+      query: 'rule.level >= 3 AND (data.srcport > 41000 OR data.win.eventdata.logonType:3)',
+      filters: [{ field: 'data.srcport', value: 42022, negate: false, disabled: true }, { field: 'data.win.eventdata.logonType', value: 3, negate: false, disabled: true }],
+      from, to, view: id === 'fim-change' ? 'fim' : 'events', evidence,
+      documents: [id + '-scope', id + '-change', ...(id === 'mixed-auth' ? ['mixed-auth-exercise'] : [])],
+      operations: ['events', 'range', 'search', 'detail', 'evidence', 'document', 'report'],
+      report: { verdict, priority, action, target, facts: 'The original saved findings remain available.', nextStep: 'The original saved handoff remains available.' },
+      completed: true,
+      feedback: { passed: true, checks: ['verdict', 'priority', 'action', 'target', 'evidence', 'evidenceLimit', 'documents', 'operations', 'facts', 'nextStep'].map(key => ({ key, passed: true })), score: 100 },
+      hint: 1, expanded: evidence[0]
+    };
+    record.completion = clone(record);
+    legacy.records[id] = record;
+  }
+  // A later unsuccessful review must not erase an earlier valid completion.
+  legacy.records.tutorial.report.verdict = 'incident';
+  legacy.records.tutorial.report.facts = 'A later review draft, still saved by the old version.';
+  legacy.records.tutorial.feedback = { passed: false, checks: [], score: 90 };
+  // Older completed records without the optional snapshot are validated against their current report.
+  delete legacy.records['fim-change'].completion;
+  const original = clone(legacy);
+  const restored = E.validateProgress(clone(legacy), C);
+  assert.equal(restored.format, legacy.format);
+  assert.equal(restored.version, legacy.version);
+  assert.equal(restored.dataset, legacy.dataset);
+  assert.equal(restored.language, 'en');
+  assert.equal(restored.activeCaseId, 'fim-change');
+  assert.equal(Object.values(restored.records).filter(record => record.completed).length, 7);
+  assert.equal(JSON.stringify(restored).includes('"score"'), false);
+  assert.equal(restored.records.tutorial.report.verdict, 'incident');
+  assert.equal(restored.records.tutorial.feedback.passed, false);
+  assert.equal(restored.records.tutorial.completion.report.verdict, 'unknown');
+  assert.equal(restored.records.tutorial.completion.feedback.passed, true);
+  for (const [id] of oldCases) {
+    assert.deepEqual(restored.records[id].filters, original.records[id].filters, id);
+    assert.equal(restored.records[id].query, original.records[id].query, id);
+    assert.deepEqual(restored.records[id].evidence, original.records[id].evidence, id);
+    assert.deepEqual(restored.records[id].documents, original.records[id].documents, id);
+    assert.deepEqual(restored.records[id].report, original.records[id].report, id);
+  }
+  assert.deepEqual(legacy, original);
+  const again = E.validateProgress(clone(restored), C);
+  assert.equal(Object.values(again.records).filter(record => record.completed).length, 7);
+  assert.equal(JSON.stringify(again).includes('"score"'), false);
 });
 
 test('UMD content and engine cooperate without CommonJS, browser APIs or network', () => {

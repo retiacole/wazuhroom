@@ -1,4 +1,4 @@
-# Wazuhroom v0.1.0
+# Wazuhroom v0.1.1
 
 [すぐにやってみる / Play Now](https://retiacole.github.io/wazuhroom/) · [オフライン用HTML / Offline HTML](https://github.com/retiacole/wazuhroom/blob/main/wazuhroom.html)
 
@@ -35,7 +35,9 @@ roomシリーズの独立した追加教材です。メインのおすすめ学�
 
 認証、アカウント・サービスの変更、監視の途絶、ファイル変更を題材にしています。インシデント、正当な作業、情報不足で判断を保留するケースを含みます。アラートのレベルだけで判定せず、時刻、対象、ログの内容、承認範囲、収集できた情報を照合します。
 
-全7件とも時間制限はなく、どの演習からでも始められます。各ケースには背景イベントと3段階のヒントがあり、ヒントによる減点はありません。証拠は必要なものに絞って提出します。すべてのイベントを証拠に選ぶだけではクリアできません。自由記述は入力の形式を確認するもので、文章の意味や推論の正しさを自動採点しません。模範例との比較に使ってください。
+全7件とも時間制限はなく、どの演習からでも始められます。各ケースには背景イベントと3段階のヒントがあり、最後のヒントには解答の手掛かりや判断例も含みます。報告を一度提出すると、合否にかかわらず報告例を開けます。ヒントや報告例を見ることによる減点はありません。自力で考えてから比較したい場合は、必要になるまで開かずに進めてください。
+
+証拠は必要なものに絞って提出します。証拠欄の数字は「選択数 / 上限」で、上限まで選ぶ必要はありません。すべてのイベントを証拠に選ぶだけではクリアできません。自由記述は入力の形式を確認するもので、文章の意味や推論の正しさを自動採点しません。模範例との比較に使ってください。この教材は自己学習用で、試験の成績評価や不正防止を目的としていません。
 
 ## 画面と検索
 
@@ -63,6 +65,15 @@ not syscheck.path:*
 フィールド指定、引用符付きの値、数値比較、`and` / `or` / `not`（大文字も可）、かっこ、フィールドの存在確認、対応する文字列フィールドの `*` を使えます。条件をつなぐ際は `and` または `or` を明示してください。
 
 識別子などのkeyword型は大小文字を区別した完全一致で、引用符なしの `*` をワイルドカードとして使えます。`full_log`、`rule.description`、`data.command`、`data.win.eventdata.commandLine` は大小文字を区別しない部分一致に簡略化しています。実際のOpenSearchの全文検索解析と同じ動作ではありません。
+
+`rule.level`、`data.srcport`、`data.win.eventdata.logonType` など、この教材で数値型にしたフィールドは、`data.srcport: 43104` や `data.win.eventdata.logonType: 10` のように引用符なしの数値で検索します。`data.srcport: "43104"` は本教材ではエラーです。実機のイベントではポート番号やlogonTypeが文字列で出力される場合があり、検索時の扱いはインデックスのマッピングにも依存します。本教材の型を実機のすべてのフィールドへ当てはめないでください。
+
+Windowsのパスや `ドメイン名\ユーザー名` を検索する場合は値を引用符で囲み、バックスラッシュ1文字を `\\` と入力します。
+
+```text
+data.win.eventdata.imagePath: "C:\\Program Files\\OpsInventory\\agent.exe"
+data.win.eventdata.memberName: "WIN-FIN-01\\maint-fin"
+```
 
 検索対象は教材で定義したフィールドです。フィールド名を付けない自由検索、Lucene、正規表現、スクリプト、任意のフィールド定義など、検索エンジン全体は再現していません。
 
@@ -116,17 +127,21 @@ The saved HTML includes the application and all teaching data. No installation, 
 
 ### Course and screens
 
-There is **one interface tutorial and six investigation cases**: two guided, two with checklists, and two independent. Topics include authentication, account and service changes, monitoring gaps, and file changes. The cases cover incidents requiring escalation, authorized work, and insufficient evidence. There are no time limits; start anywhere. Each case includes background events and three levels of hints, without hint penalties.
+There is **one interface tutorial and six investigation cases**: two guided, two with checklists, and two independent. Topics include authentication, account and service changes, monitoring gaps, and file changes. The cases cover incidents requiring escalation, authorized work, and insufficient evidence. There are no time limits; start anywhere. Each case includes background events and three levels of hints. The final hint may include solution clues or an expected decision. After any report submission, whether it passes or fails, you can open the example report. Viewing hints or examples carries no penalty. Leave them closed until needed if you prefer to investigate independently first.
 
 Use **Overview** for summaries, **Endpoints** for agent and endpoint status, **Threat Hunting** for event searches and details, and **File Integrity Monitoring** for file-change events. The separate learning panel contains assignments, hints, documents, evidence, reports, and reflection; these are Wazuhroom teaching features.
 
-All times are UTC and belong to a fixed teaching timeline. Events outside the selected time range are hidden. Select relevant evidence rather than every event. Report text receives structural checks only: the application does not judge its meaning or reasoning quality. Compare your writing with the worked example.
+All times are UTC and belong to a fixed teaching timeline. Events outside the selected time range are hidden. Select relevant evidence rather than every event. The evidence counter means **selected / maximum**, not a required count; you do not need to fill the allowance. Report text receives structural checks only: the application does not judge its meaning or reasoning quality. Compare your writing with the worked example. This is a self-study course, not a graded examination or an anti-cheating system.
 
 ### Search, language, and saves
 
 Event search supports a documented **DQL subset**: field comparisons, quoted values, numeric ranges, `and` / `or` / `not` (also uppercase), parentheses, field existence, and unquoted `*` on supported keyword fields. Join conditions with an explicit `and` or `or`. The examples above apply in both languages.
 
 Keyword fields use case-sensitive exact matching. Searches in `full_log`, `rule.description`, `data.command`, and `data.win.eventdata.commandLine` use simplified case-insensitive substring matching, which does not reproduce OpenSearch's full-text analyzer. Unqualified free-text searches, Lucene, regular expressions, scripts, arbitrary mappings, and a complete search backend are not included.
+
+Fields modeled as numbers here, including `rule.level`, `data.srcport`, and `data.win.eventdata.logonType`, require unquoted numbers: for example, `data.srcport: 43104` or `data.win.eventdata.logonType: 10`. The simulator rejects `data.srcport: "43104"`. Real event payloads may represent ports or logonType as strings, and query behavior also depends on the index mapping. Do not generalize this simulator's field types to every real deployment.
+
+For Windows paths and `DOMAIN\user` values, use a quoted value and enter `\\` for each literal backslash. The two Windows examples in the Japanese section above work in either language.
 
 Agent search uses a separate **WQL subset** over `id`, `name`, `ip`, `status`, `os.name`, and `os.platform`. Use `=` (equal), `!=` (not equal), `~` (substring), lowercase `and` / `or`, and parentheses. Comparisons are case-sensitive; `>` / `<` compare these string fields lexicographically in this simulator. WQL does not accept `*` wildcards. Invalid or unsupported syntax produces an error.
 
@@ -173,15 +188,23 @@ node --test
 
 The three distribution files contain the same standalone application. Edit the sources and rebuild instead of editing generated HTML.
 
-開発用のDOMテストだけでjsdomを使用します。配布HTMLには外部ライブラリーを読み込む処理はありません。43項目の自動検証で、日英の全7件の画面操作・検索・採点・保存を確認しています。実ブラウザでは調査から報告、保存と復元、幅390pxと1440pxの表示を確認しました。Firefox・Safariの実機検証は未実施です。
+開発用のDOMテストだけでjsdomを使用します。配布HTMLには外部ライブラリーを読み込む処理はありません。自動検証は、日英の全7件の画面操作・検索・採点・保存を対象にしています。v0.1.0公開時の実ブラウザ確認は、調査から報告、保存と復元、幅390pxと1440pxの表示を対象にしました。v0.1.1では57件の自動テストを通過し、旧版の保存データの復元も確認しました。実ブラウザで必須資料・手順の表示、英語の検索ヘルプと数値検索、幅390pxの報告画面を確認しています。Firefox・Safariの実機検証は未実施です。
 
-jsdom is used only for development tests. The distributed HTML loads no external libraries. The 43 automated checks cover all seven cases in both languages, UI operations, search, assessment, and saves. Browser checks cover investigation through reporting, export/import, and 390px/1440px layouts. Firefox and Safari have not been directly tested.
+jsdom is used only for development tests. The distributed HTML loads no external libraries. Automated checks cover all seven cases in both languages, UI operations, search, assessment, and saves. Browser checks for the v0.1.0 release covered investigation through reporting, export/import, and 390px/1440px layouts. Version 0.1.1 passes 57 automated tests, including restoration of v0.1.0 saves. Browser checks cover required references and instructions, English search help and numeric search, and the report at 390px width. Firefox and Safari have not been directly tested.
 
 ## ライセンスと謝辞 / License and acknowledgments
 
-MIT License。詳細は [LICENSE](LICENSE) を参照してください。正解もHTMLに含む個人学習用教材であり、不正防止を目的とする試験システムではありません。
+このプロジェクトの独自実装はMIT Licenseで公開しています。詳細は [LICENSE](LICENSE) を参照してください。このMITライセンスは、Wazuhの名称・商標・ブランド素材の利用許諾を与えるものではありません。
 
-This original implementation is released under the MIT License. Answers are included in the HTML for self-study; this is not an examination system designed to prevent cheating.
+This project's original implementation is released under the MIT License; see [LICENSE](LICENSE). That license does not grant permission to use Wazuh's name, trademarks, or branding materials.
+
+WazuhはWazuh Inc.の商標です。本教材はWazuh Inc.とは提携しておらず、同社による提供・認定・承認・支援を示すものではありません。名称や画面の利用について、許可取得済み・権利確認完了と表明するものでもありません。[Wazuhの商標・ブランドポリシー](https://wazuh.com/docs/legal-resources/Trademark_and_Brand_Policy_May_2024.pdf)を参照してください。
+
+Wazuh is a trademark of Wazuh Inc. This project is not affiliated with Wazuh Inc. and is not provided, certified, approved, or endorsed by the company. This notice does not assert that permission has been obtained or that use of the name or interface has received legal clearance. See [Wazuh's Trademark and Brand Policy](https://wazuh.com/docs/legal-resources/Trademark_and_Brand_Policy_May_2024.pdf).
+
+正解もHTMLに含む自己学習用教材です。ヒント・報告例は学習のために利用でき、不正防止を目的とする試験システムではありません。
+
+Answers are included in the HTML for self-study. Hints and example reports are learning aids; this is not an examination system designed to prevent cheating.
 
 [SOCroom](https://github.com/retiacole/socroom)の「証拠を選び、判断し、報告する」という教育設計を参考にしています。Wazuhの画面・検索・データ形式の参照元は[参考資料](docs/REFERENCES.md)にまとめています。
 

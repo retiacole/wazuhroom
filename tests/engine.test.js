@@ -86,6 +86,25 @@ test('keyword wildcards are anchored and escaped punctuation stays literal', () 
   assert.deepEqual(E.search(longName, { query: 'agent.name:' + '*a'.repeat(100) + '*b' }), []);
 });
 
+test('Windows paths in quoted DQL decode escaped backslashes exactly once', () => {
+  const windowsPath = String.raw`C:\Program Files\Acme\agent.exe`;
+  const windowsEvent = {
+    ...events[1],
+    data: { win: { eventdata: {
+      imagePath: windowsPath,
+      commandLine: '"' + windowsPath + '" --config "C:\\ProgramData\\Acme\\settings.json"'
+    } } }
+  };
+  const query = String.raw`data.win.eventdata.imagePath: "C:\\Program Files\\Acme\\agent.exe"`;
+  assert.deepEqual(ids(E.search([windowsEvent], { query })), ['b']);
+  assert.deepEqual(ids(E.search([windowsEvent], { query: String.raw`data.win.eventdata.commandLine: "\"C:\\Program Files\\Acme\\agent.exe\""` })), ['b']);
+  assert.deepEqual(ids(E.search([windowsEvent], { filters: [{ field: 'data.win.eventdata.imagePath', value: windowsPath }] })), ['b']);
+  const overEscaped = { ...windowsEvent, data: { win: { eventdata: { imagePath: windowsPath.replaceAll('\\', '\\\\') } } } };
+  assert.deepEqual(E.search([overEscaped], { query }), []);
+  assert.throws(() => E.search([windowsEvent], { query: String.raw`data.win.eventdata.imagePath: "C:\Program Files\Acme\agent.exe"` }), /escapes/);
+  assert.throws(() => E.search([windowsEvent], { query: String.raw`data.win.eventdata.imagePath: C:\Program Files\Acme\agent.exe` }), /syntax|character|token/i);
+});
+
 test('invalid, unsupported and excessively nested queries throw instead of returning all', () => {
   for (const query of ['rule.leevl:10', 'unknown:foo', 'agent.name=', 'agent.name:web-01 agent.id:001', 'rule.level >=', '(agent.id:001', 'agent.id:001)', 'agent.name:"unclosed', 'agent.name:/web/i', 'rule.level:[1 TO 9]', 'agent.name:web?', 'rule.level!=10', 'agent.name:web-01 XOR agent.id:001', 'rule.level:Infinity', 'rule.level:1e2', 'agent.name:AND', 'full_log:""', 'agent.name:"bad\\nvalue"', 'rule.level >= 9 && agent.id:001', 'agent.id:001 OR']) {
     if (query === 'agent.name:/web/i') {
@@ -138,7 +157,7 @@ test('WQL agent subset uses explicit fields, operators, substring matching and p
 
 test('assessment requires decisions, AND-of-OR evidence, documentation and actual operations', () => {
   const record = passingRecord();
-  assert.deepEqual(E.assess(lesson, record), { passed: true, checks: ['verdict', 'priority', 'action', 'target', 'evidence', 'evidenceLimit', 'documents', 'operations', 'facts', 'nextStep'].map(key => ({ key, passed: true })), score: 100 });
+  assert.deepEqual(E.assess(lesson, record), { passed: true, checks: ['verdict', 'priority', 'action', 'target', 'evidence', 'evidenceLimit', 'documents', 'operations', 'facts', 'nextStep'].map(key => ({ key, passed: true })) });
   record.evidence = ['b', 'd'];
   assert.equal(E.assess(lesson, record).passed, true);
   for (const mutation of [r => r.report.verdict = 'unknown', r => r.report.target = '001', r => r.evidence = ['a', 'c'], r => r.evidence = ['b', 'b', 'c'], r => r.evidence = ['b', 'c', 'foreign'], r => r.documents = [], r => r.operations = ['report'], r => r.report.facts = 'short', r => r.report.nextStep = ' '.repeat(12)]) {
@@ -176,7 +195,8 @@ test('completed saves re-assess snapshots while preserving later unsuccessful dr
   const restored = E.validateProgress(progress, content).records[lesson.id];
   assert.equal(restored.completed, true);
   assert.equal(restored.feedback.passed, false);
-  assert.equal(restored.completion.feedback.score, 100);
+  assert.equal(restored.completion.feedback.passed, true);
+  assert.equal(Object.hasOwn(restored.completion.feedback, 'score'), false);
   assert.equal(restored.completion.report.verdict, 'incident');
   assert.equal(restored.report.verdict, 'unknown');
   restored.completion.evidence.length = 0;
@@ -208,7 +228,7 @@ test('forged completion, score and foreign IDs do not produce a passing import',
   const sanitized = E.validateProgress(baseline, content);
   assert.equal(sanitized.records[lesson.id].completed, false);
   assert.equal(sanitized.records[lesson.id].feedback.passed, false);
-  assert.notEqual(sanitized.records[lesson.id].feedback.score, 100);
+  assert.equal(Object.hasOwn(sanitized.records[lesson.id].feedback, 'score'), false);
 });
 
 test('tampered successful snapshots are rejected even when draft passes', () => {

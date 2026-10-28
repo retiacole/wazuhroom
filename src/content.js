@@ -32,11 +32,11 @@
     };
   }
 
-  function ssh(id, timestamp, agentId, accepted, user, source, port) {
+  function ssh(id, timestamp, agentId, accepted, user, source, port, authenticationMethod) {
     const host = profiles.find(item => item.id === agentId).name;
     const data = { srcip: source, srcport: port || 42022, dstuser: user, action: accepted ? 'authentication_success' : 'authentication_failed' };
     const message = accepted
-      ? `Accepted publickey for ${user} from ${source} port ${data.srcport} ssh2`
+      ? `Accepted ${authenticationMethod || 'publickey'} for ${user} from ${source} port ${data.srcport} ssh2`
       : `Failed password for ${user} from ${source} port ${data.srcport} ssh2`;
     return event(id, timestamp, agentId, accepted ? 100011 : 100010, accepted ? 3 : 5,
       accepted ? 'Training: SSH authentication succeeded' : 'Training: SSH authentication failed',
@@ -80,15 +80,19 @@
     'このケースは架空の演習データです。rule.id 100001–100099 と wazuhroom-* decoder は教材専用で、Wazuh標準ルールの出力を実機で検証したものではありません。背景の正常動作も学習用カスタムルールによりlevel 3以上のイベントとして表示しています。実環境で同じ正常動作が必ずアラートになるとは限りません。IPアドレス・ユーザー名・ハッシュは架空です。全時刻はUTCで、期間内の選定ログだけを表示します。検索結果がないことは、未収集の動作や期間外の動作がなかった証明にはなりません。',
     'This case uses fictional training data. Rule IDs 100001–100099 and wazuhroom-* decoders are educational definitions, not outputs verified against a live Wazuh installation. Routine background activity is also represented as level 3 or higher events by training rules; the same activity need not produce alerts in a real deployment. IPs, users, and hashes are fictional. All times are UTC. Only selected logs in the case window are shown. An empty search does not prove that uncollected or out-of-window activity never occurred.'
   );
+  const backgroundScope = B(
+    '共通の背景ログ：Linux端末のweb-01とdb-01では、10.20.0.5からsvc.inventoryによるSSH公開鍵認証の成功、およびrootによるlogrotateの完了を収集します。Windows端末win-fin-01では、10.20.0.5からsvc.inventoryへのSecurity 4624（logonType 3：ネットワークログオン）と、Windows Event LogサービスのSystem 7036（稼働状態）を収集します。いずれもこの演習では定期運用です。監視欠落のケースでは、以下の最終観測・切断時刻が優先され、切断後のdb-01から背景ログは届きません。',
+    'Common background coverage: Linux endpoints web-01 and db-01 provide successful SSH public-key authentication by svc.inventory from 10.20.0.5 and logrotate completion by root. Windows endpoint win-fin-01 provides Security 4624 events for svc.inventory from 10.20.0.5 (logonType 3: network logon) and System 7036 events reporting the Windows Event Log service running. These are routine operations in this exercise. In the collection-gap case, the last-observation and disconnect times below take precedence; no db-01 background telemetry arrives after disconnection.'
+  );
   const runbook = B(
-    '一次対応の判断基準：incident＝インシデント候補として引き継ぐ、benign＝承認済み作業と証拠が一致、unknown＝判断に必要な観測が不足。優先度high＝不審な認証成功後の権限操作、承認外の自動起動サービス、重要な認証設定の承認外変更。medium＝予定時間を超えて復旧未確認の監視欠落。low＝単独の認証失敗、または承認済み作業との一致。actionはescalate（上位担当へ引継ぎ）、verify（担当者・収集経路へ確認）、monitor（記録を残して継続監視）。端末、時刻、根拠イベント、参照文書、未確認事項、次の確認先を短く報告してください。rule.levelは調査の入口であり、侵害の確定や業務優先度そのものではありません。教材の報告・採点欄はWazuhroom独自機能です。',
-    'Triage policy: incident means escalate as an incident candidate; benign means evidence matches approved work; unknown means important observations are missing. High priority: suspicious successful authentication followed by privileged activity, an unapproved auto-start service, or an unapproved change to critical authentication configuration. Medium: a collection gap with recovery unconfirmed beyond its planned window. Low: a single authentication failure or activity matching approved work. Actions: escalate to the senior responder, verify with the owner or collection team, or monitor while retaining the record. Report the endpoint, time, supporting events, documents, unknowns, and the next owner/check. A rule level is a lead, not proof of compromise or the business priority itself. The report and scoring panel belongs to Wazuhroom, not the Wazuh product.'
+    '報告フォームの「判定」：「インシデント」はインシデント候補として引き継ぐ状態、「正当な活動」は承認済み作業と証拠が一致する状態、「判断保留」は判断に必要な観測が不足する状態です。「優先度」の「高」は不審な認証成功後の権限操作、承認外の自動起動サービス、重要な認証設定の承認外変更。「中」は予定時間を超えて復旧未確認の監視欠落。「低」は単独の認証失敗、または承認済み作業との一致です。「次の対応」は「担当へエスカレーション」（上位担当へ引継ぎ）、「追加確認を依頼」（担当者・収集経路へ確認）、「監視を継続」（記録を残して継続監視）から選びます。「主な対象」を選び、「確認した事実と根拠」には端末・時刻・根拠イベント・参照文書を、「未確認事項・引継ぎ先・次の確認」には分からないことと確認先を短く記入してください。rule.levelは調査の入口であり、侵害の確定や業務優先度そのものではありません。教材の報告・採点欄はWazuhroom独自機能です。',
+    'Report form — Verdict: “Incident” means hand over an incident candidate; “Benign activity” means evidence matches approved work; “Insufficient evidence” means important observations are missing. Priority — “High”: suspicious successful authentication followed by privileged activity, an unapproved auto-start service, or an unapproved change to critical authentication configuration. “Medium”: a collection gap with recovery unconfirmed beyond its planned window. “Low”: a single authentication failure or activity matching approved work. Next action: choose “Escalate to the responsible team” for a responder handover, “Request verification” for checks with the owner or collection team, or “Continue monitoring” while retaining the record. Select the “Primary target”. In “Observed facts and evidence”, record the endpoint, time, supporting events, and references. In “Unknowns, recipient, and next checks”, state what is missing and who should check it. A rule level is a lead, not proof of compromise or the business priority itself. The report and scoring panel belongs to Wazuhroom, not the Wazuh product.'
   );
 
   function document(id, title, body) { return { id, title, body }; }
   function documents(caseId, scope, title, change, extra) {
     return [
-      document(`${caseId}-scope`, B('収集範囲とデータの読み方', 'Collection scope and data notes'), B(`${scope.ja}\n\n${provenance.ja}`, `${scope.en}\n\n${provenance.en}`)),
+      document(`${caseId}-scope`, B('収集範囲とデータの読み方', 'Collection scope and data notes'), B(`${backgroundScope.ja}\n\n${scope.ja}\n\n${provenance.ja}`, `${backgroundScope.en}\n\n${scope.en}\n\n${provenance.en}`)),
       document(`${caseId}-change`, title, change),
       document(`${caseId}-runbook`, B('SOC一次対応の判断基準', 'SOC triage policy'), runbook),
       ...(extra || [])
@@ -99,14 +103,16 @@
   function standardSteps(caseId, stage, target) {
     const result = [];
     if (stage === 'guided') {
-      result.push(step(caseId, 'events', B('Eventsを開く', 'Open Events'), B('Threat HuntingのEventsで一覧を開きます。課題パネルを見ただけでは操作は完了しません。', 'Open the event list in Threat Hunting. Viewing the task panel alone does not complete an operation.')));
+      result.push(step(caseId, 'events', B('Threat Huntingのイベント一覧を開く', 'Open the Threat Hunting event list'), B('メニューのThreat Huntingからイベント一覧を開きます。課題パネルを見ただけでは操作は完了しません。', 'Open the event list from Threat Hunting in the menu. Viewing the task panel alone does not complete an operation.')));
       result.push(step(caseId, 'range', B('調査期間を適用する', 'Apply the investigation window'), B('開始・終了を確認し、期間を適用してください。すべてUTCです。時間を絞りすぎたらケースの期間に戻します。', 'Check and apply the start and end time. Times are UTC. Restore the case window if a narrow interval hides context.')));
     }
     result.push(step(caseId, 'search', B('関連ログを絞り込む', 'Filter related events'), B(`対象は${target}です。DQL検索またはフィルターを実行し、必要に応じて条件を外して前後の出来事を確認します。`, `Investigate ${target}. Run a DQL search or apply a filter, then remove conditions when needed to inspect surrounding activity.`)));
     result.push(step(caseId, 'detail', B('詳細と元ログを読む', 'Read details and the original log'), B('関係する行を展開して、agent、時刻、rule、data、full_logを確認します。表示されない項目は推測で補いません。', 'Expand a relevant row and inspect the agent, time, rule, data, and full_log. Do not invent values for absent fields.')));
-    result.push(step(caseId, 'evidence', B('判断を支える証拠を選ぶ', 'Select supporting evidence'), B('結論に必要なイベントを証拠として追加します。大量の正常ログを選ぶより、出来事のつながりを説明できる少数の記録を選びます。', 'Add the events needed to support your conclusion. Prefer a few records that explain the sequence over many unrelated routine events.')));
-    result.push(step(caseId, 'document', B('収集範囲と作業記録を読む', 'Read scope and work records'), B('「収集範囲とデータの読み方」と作業・引継ぎ文書を開いて読了を記録してください。ログと文書の端末・時刻・利用者・対象を照合します。', 'Read and mark the collection-scope document and the work/handover record. Compare the endpoint, time, account, and target with the logs.')));
-    result.push(step(caseId, 'report', B('根拠付きで一次報告する', 'Submit an evidence-based report'), B('判定、優先度、次の対応、対象端末を選びます。観測した事実と未確認事項を書き、誰に何を確認するかを報告してください。', 'Select a verdict, priority, action, and endpoint. Separate observed facts from unknowns, and state who should check what next.')));
+    result.push(step(caseId, 'evidence', B('判断を支える証拠を選ぶ', 'Select supporting evidence'), caseId === 'mixed-auth'
+      ? B('win-fin-01のログオンとサービス登録に加え、比較対象であるweb-01の認証失敗を少なくとも1件、証拠に追加してください。両端末の出来事を比較した根拠を残し、同時刻というだけで関係を断定しないようにします。', 'Add evidence for the win-fin-01 logon and service registration, plus at least one authentication failure from web-01 as comparison evidence. Keep the records used to compare the endpoints; time overlap alone must not establish a connection.')
+      : B('結論に必要なイベントを証拠として追加します。大量の正常ログを選ぶより、出来事のつながりを説明できる少数の記録を選びます。', 'Add the events needed to support your conclusion. Prefer a few records that explain the sequence over many unrelated routine events.')));
+    result.push(step(caseId, 'document', B('資料と判断基準を読む', 'Read references and the triage policy'), B('収集範囲、作業記録、SOC一次対応の判断基準を読みます。', 'Read the collection scope, work records, and SOC triage policy.')));
+    result.push(step(caseId, 'report', B('根拠付きで一次報告する', 'Submit an evidence-based report'), B('「判定」「優先度」「次の対応」「主な対象」を選びます。「確認した事実と根拠」に観測事実を、「未確認事項・引継ぎ先・次の確認」に分からないことと誰に何を確認するかを書いて報告してください。', 'Select “Verdict”, “Priority”, “Next action”, and “Primary target”. Record observations in “Observed facts and evidence”. Use “Unknowns, recipient, and next checks” to state what is missing and who should check what next.')));
     return result;
   }
 
@@ -114,7 +120,14 @@
     const events = background(config.id, config.timeRange.from, config.timeRange.to, config.disconnected)
       .concat(config.events).sort((a, b) => a.timestamp.localeCompare(b.timestamp) || a.id.localeCompare(b.id));
     const { disconnected, ...rest } = config;
-    return { ...rest, agents: agentSnapshot(config.timeRange.to, disconnected), events };
+    const steps = config.steps.map(item => item.kind !== 'document' ? item : {
+      ...item,
+      body: B(
+        `「資料」タブで${config.documents.map(doc => `「${doc.title.ja}」`).join('、')}を開いて読みます。開いた資料は「確認済み」と表示されます。判断基準を確認し、ログと資料の端末・時刻・利用者・対象を照合してください。`,
+        `In the References tab, open and read ${config.documents.map(doc => `“${doc.title.en}”`).join(', ')}. Opened references are labelled “Opened”. Review the triage policy and compare the endpoint, time, account, and target with the logs.`
+      )
+    });
+    return { ...rest, agents: agentSnapshot(config.timeRange.to, disconnected), events, steps };
   }
 
   const tutorialId = 'tutorial';
@@ -129,9 +142,9 @@
     ],
     timeRange: { from: iso('2026-10-14', '09:00'), to: iso('2026-10-14', '09:30') },
     hints: [
-      B('Eventsを開き、ケースの期間を適用してから agent.name: "web-01" を検索してみましょう。', 'Open Events, apply the case time window, then try agent.name: "web-01".'),
+      B('Threat Huntingのイベント一覧を開き、ケースの期間を適用してから agent.name: "web-01" を検索してみましょう。', 'Open the Threat Hunting event list, apply the case time window, then try agent.name: "web-01".'),
       B('data.action: "authentication_failed" を追加すると通知対象が見つかります。行を開いて data.srcip と data.dstuser を読みます。', 'Add data.action: "authentication_failed" to find the reported event. Expand it and read data.srcip and data.dstuser.'),
-      B('1件の失敗は認証成功の証拠ではありません。証拠1件と収集範囲・引継ぎ文書をそろえ、unknown / low / verify、web-01で報告できます。', 'A single failure is not proof of successful access. Keep that event plus the scope and handover documents; the expected triage is unknown / low / verify for web-01.')
+      B('1件の失敗は認証成功の証拠ではありません。証拠1件と収集範囲・引継ぎ文書をそろえ、判断基準を確認して「判断保留」／「低」／「追加確認を依頼」、主な対象「web-01 (001)」で報告できます。', 'A single failure is not proof of successful access. Keep that event plus the scope and handover documents, read the triage policy, and select “Insufficient evidence” / “Low” / “Request verification” with primary target “web-01 (001)”.')
     ],
     documents: documents(tutorialId,
       B('対象期間は2026-10-14 09:00–09:30 UTC。web-01とdb-01はSSH認証ログと定期処理の選定ログ、win-fin-01はSecurity/Systemの選定イベントを収集します。失敗と成功は別のactionです。パケット、認証基盤全体、実行プロセス一覧はありません。10.20.0.5のsvc.inventoryは定期収集用アカウントです。', 'Window: 2026-10-14 09:00–09:30 UTC. Selected SSH and scheduled-job logs are collected from web-01 and db-01; selected Security/System events come from win-fin-01. Failures and successes have different actions. Packet data, complete identity logs, and process inventories are unavailable. svc.inventory from 10.20.0.5 is the scheduled collection account.'),
@@ -139,13 +152,13 @@
       B('通知は09:12 UTC、web-01のdeployへの失敗。203.0.113.44は登録された運用接続元ではありませんが、所有者・利用者・地域はこの資料では特定できません。この時間帯のweb-01変更予定はありません。当番は端末担当者への確認と、追加の失敗・成功ログの有無の確認を依頼しています。登録外IPだけで侵害確定とはしません。', 'The notification concerns a failed login for deploy on web-01 at 09:12 UTC. 203.0.113.44 is not a registered operations source; this record does not identify its owner, user, or location. No web-01 change is planned in this window. The shift owner requests verification with the endpoint owner and a check for additional failures or successes. An unregistered IP alone does not establish compromise.')),
     events: [ssh('tutorial-failure', iso('2026-10-14', '09:12'), '001', false, 'deploy', '203.0.113.44')],
     steps: [
-      step(tutorialId, 'events', B('1. Threat HuntingのEventsを開く', '1. Open Threat Hunting Events'), B('メニューからThreat Huntingを選び、Events一覧を表示します。中央がWazuh風の調査画面、こちらが教材ガイドです。', 'Choose Threat Hunting and display Events. The central area is the Wazuh-style investigation interface; this panel is the learning guide.')),
+      step(tutorialId, 'events', B('1. Threat Huntingのイベント一覧を開く', '1. Open the Threat Hunting event list'), B('メニューからThreat Huntingを選び、イベント一覧を表示します。中央がWazuh風の調査画面、こちらが教材ガイドです。', 'Choose Threat Hunting to display the event list. The central area is the Wazuh-style investigation interface; this panel is the learning guide.')),
       step(tutorialId, 'range', B('2. 調査期間を適用する', '2. Apply the time window'), B('2026-10-14 09:00–09:30 UTCを確認して期間を適用します。実機でも、時間条件が違うと同じ検索でも結果が変わります。', 'Check and apply 2026-10-14 09:00–09:30 UTC. On a real system, a different time filter changes the results of the same query.')),
-      step(tutorialId, 'search', B('3. web-01の失敗を検索する', '3. Search failures on web-01'), B('agent.name: "web-01" AND data.action: "authentication_failed" を入力して検索します。イベントの検索はDQLです。Agents画面のWQLとは記法が異なります。', 'Search for agent.name: "web-01" AND data.action: "authentication_failed". Events use DQL; the Agents screen uses a different syntax called WQL.')),
+      step(tutorialId, 'search', B('3. web-01の失敗を検索する', '3. Search failures on web-01'), B('agent.name: "web-01" AND data.action: "authentication_failed" を入力して検索します。イベントの検索はDQLです。Endpoints画面のWQLとは記法が異なります。', 'Search for agent.name: "web-01" AND data.action: "authentication_failed". The event list uses DQL; the Endpoints screen uses a different syntax called WQL.')),
       step(tutorialId, 'detail', B('4. 行を展開して詳細を読む', '4. Expand and inspect the event'), B('09:12の行を展開し、agent.name、rule.level、data.srcip、data.dstuser、full_logを読みます。認証の「失敗」を示す記録であることを確かめてください。', 'Expand the 09:12 row. Read agent.name, rule.level, data.srcip, data.dstuser, and full_log. Confirm that it records a failed authentication.')),
       step(tutorialId, 'evidence', B('5. イベントを証拠に追加する', '5. Add the event as evidence'), B('この認証失敗イベントを証拠に追加します。背景の定期処理まで選ぶ必要はありません。証拠は後から取り消せます。', 'Add the failed-login event to the evidence list. Routine background jobs are unnecessary. You can remove selected evidence later.')),
-      step(tutorialId, 'document', B('6. 収集範囲と引継ぎを読む', '6. Read scope and handover'), B('「収集範囲とデータの読み方」と「当番への引継ぎ」を開いて読了を記録します。何が記録されていて、何が不明かを確認してください。', 'Read and mark the collection-scope document and shift handover. Identify what is recorded and what remains unknown.')),
-      step(tutorialId, 'report', B('7. 一次報告を提出する', '7. Submit the initial report'), B('判定は未確定、優先度は低、対応は確認、対象はweb-01です。事実欄には時刻・接続元・失敗した利用者・成功は確認できないことを、次の対応には端末担当者への確認を書いて提出します。', 'Choose unknown, low priority, verify, and web-01. State the time, source, target account, and that success is not established. Describe a check with the endpoint owner, then submit.'))
+      step(tutorialId, 'document', B('6. 資料と判断基準を読む', '6. Read references and the triage policy'), B('収集範囲、引継ぎ、SOC一次対応の判断基準を読みます。', 'Read the collection scope, handover, and SOC triage policy.')),
+      step(tutorialId, 'report', B('7. 一次報告を提出する', '7. Submit the initial report'), B('「判定」は「判断保留」、「優先度」は「低」、「次の対応」は「追加確認を依頼」、「主な対象」は「web-01 (001)」を選びます。「確認した事実と根拠」には時刻・接続元・失敗した利用者・成功は確認できないことを、「未確認事項・引継ぎ先・次の確認」には端末担当者への確認事項を書き、「調査報告を提出」を押します。', 'Choose “Insufficient evidence” for “Verdict”, “Low” for “Priority”, “Request verification” for “Next action”, and “web-01 (001)” for “Primary target”. In “Observed facts and evidence”, state the time, source, target account, and that success is not established. In “Unknowns, recipient, and next checks”, describe the checks for the endpoint owner. Select “Submit investigation report”.'))
     ],
     answer: {
       verdict: 'unknown', priority: 'low', action: 'verify', target: '001',
@@ -176,7 +189,7 @@
       ssh('auth-chain-fail-1', iso('2026-10-15', '10:12'), '001', false, 'ops', '203.0.113.77', 43101),
       ssh('auth-chain-fail-2', iso('2026-10-15', '10:13'), '001', false, 'ops', '203.0.113.77', 43102),
       ssh('auth-chain-fail-3', iso('2026-10-15', '10:14'), '001', false, 'ops', '203.0.113.77', 43103),
-      ssh('auth-chain-success', iso('2026-10-15', '10:16'), '001', true, 'ops', '203.0.113.77', 43104),
+      ssh('auth-chain-success', iso('2026-10-15', '10:16'), '001', true, 'ops', '203.0.113.77', 43104, 'password'),
       event('auth-chain-sudo', iso('2026-10-15', '10:18'), '001', 100012, 10, 'Training: privileged account-management command', ['wazuhroom', 'sudo', 'account_management'], 'wazuhroom-sudo',
         { srcuser: 'ops', dstuser: 'root', action: 'privileged_command', command: '/usr/sbin/useradd -m support-temp' },
         '2026-10-15T10:18:00Z web-01 sudo: ops : TTY=pts/2 ; PWD=/home/ops ; USER=root ; COMMAND=/usr/sbin/useradd -m support-temp')
@@ -201,10 +214,10 @@
     hints: [
       B('agent.name: "win-fin-01" AND (data.win.system.eventID: "4720" OR data.win.system.eventID: "4732" OR data.win.system.eventID: "4733") を検索します。', 'Search agent.name: "win-fin-01" AND (data.win.system.eventID: "4720" OR data.win.system.eventID: "4732" OR data.win.system.eventID: "4733").'),
       B('subjectUserNameは操作したアカウントです。4732のtargetUserNameは追加先グループで、memberNameが追加対象です。作業票のmaint-finと照合します。', 'subjectUserName is the actor. In event 4732, targetUserName is the destination group and memberName is the added member. Compare maint-fin with the change ticket.'),
-      B('作成、Administrators追加、グループからの削除の3件を証拠にします。対象・実行者・時間がCHG-204と一致し、削除も確認できるためbenign / low / monitorです。', 'Keep creation, addition to Administrators, and removal from that group. The target, actor, and time match CHG-204, including removal, so the expected result is benign / low / monitor.')
+      B('作成、Administrators追加、グループからのメンバー削除の3件を証拠にします。対象・実行者・時間がCHG-204と一致し、メンバー削除も確認できるため「正当な活動」／「低」／「監視を継続」です。', 'Keep creation, addition to Administrators, and removal of that membership. The target, actor, and time match CHG-204, including membership removal, so select “Benign activity” / “Low” / “Continue monitoring”.')
     ],
     documents: documents(adminId,
-      B('対象期間は2026-10-16 11:00–11:40 UTC。win-fin-01はSecurityイベント4720（アカウント作成）、4732（ローカルグループ追加）、4733（ローカルグループ削除）を選定収集します。subjectUserNameは実行アカウント、memberNameはグループ操作の対象です。アカウント作成と管理者グループ加入は別の事象です。削除イベントはグループ所属の削除を示し、アカウント自体の削除ではありません。', 'Window: 2026-10-16 11:00–11:40 UTC. Selected win-fin-01 Security events include 4720 (account creation), 4732 (local group addition), and 4733 (local group removal). subjectUserName is the actor; memberName is the affected group member. Account creation and administrator membership are distinct. A group-removal event does not mean the account itself was deleted.'),
+      B('対象期間は2026-10-16 11:00–11:40 UTC。win-fin-01はSecurityイベント4720（アカウント作成）、4732（ローカルグループへのメンバー追加）、4733（ローカルグループからのメンバー削除）を選定収集します。subjectUserNameは実行アカウント、memberNameはグループ操作の対象です。アカウント作成と管理者グループ加入は別の事象です。4733はグループ所属の削除を示し、アカウントやグループ自体の削除ではありません。', 'Window: 2026-10-16 11:00–11:40 UTC. Selected win-fin-01 Security events include 4720 (account creation), 4732 (member addition to a local group), and 4733 (member removal from a local group). subjectUserName is the actor; memberName is the affected group member. Account creation and administrator membership are distinct. Event 4733 removes membership; it does not mean the account or group itself was deleted.'),
       B('承認済み作業票 CHG-204', 'Approved change CHG-204'),
       B('対象：win-fin-01。担当アカウント：admin.mori。作業時間：11:10–11:30 UTC。会計ソフト更新のためローカルアカウントmaint-finを作成し、一時的にAdministratorsへ追加してよい。11:30までに同グループから外し、アカウントは通常権限で残す。別端末、別アカウント、時間外の管理者追加はこの承認に含まれない。作業後は記録を保存し継続監視する。', 'Endpoint: win-fin-01. Operator account: admin.mori. Window: 11:10–11:30 UTC. Create local account maint-fin and temporarily add it to Administrators for an accounting-software update. Remove membership by 11:30; retain the account with normal privileges. Other endpoints, accounts, or times are outside this approval. Preserve the record and continue monitoring after completion.')),
     events: [
@@ -237,7 +250,7 @@
     documents: documents(serviceId,
       B('対象期間は2026-10-17 12:00–12:40 UTC。win-fin-01のSystem 7045とSecurity 4688を選定収集し、4688のコマンドラインも含みます。バイナリ本体、署名検証結果、ネットワーク通信、サービスの実稼働状態はありません。パスやサービス名が不審でもマルウェアの同定には追加調査が必要です。', 'Window: 2026-10-17 12:00–12:40 UTC. Selected win-fin-01 System 7045 and Security 4688 events are available, including 4688 command lines. Binary contents, signature verification, network traffic, and actual service-running status are unavailable. A suspicious name or path alone does not identify malware.'),
       B('作業予定 CHG-207と構成基準', 'Planned change CHG-207 and baseline'),
-      B('CHG-207はdb-01のバックアップ設定変更のみを承認しています。win-fin-01の新規サービス導入は予定されていません。標準インベントリ製品はC:\\Program Files\\OpsInventory\\配下を使用します。InvoiceUpdaterというサービス、ProgramData\\Invoice配下のバイナリ、LocalSystemでの自動起動は当日の承認一覧にありません。業務端末のため、停止や削除は上位担当の確認を経て行います。', 'CHG-207 approves only a backup-configuration change on db-01. No new service installation is scheduled on win-fin-01. The standard inventory product uses C:\\Program Files\\OpsInventory\\. InvoiceUpdater, a binary under ProgramData\\Invoice, and its automatic LocalSystem startup are absent from today’s approvals. Obtain responder review before stopping or deleting anything on this business endpoint.')),
+      B('CHG-207はdb-01のバックアップ設定変更のみを承認しています。win-fin-01の新規サービス導入は予定されていません。fin.userは経理部門の通常業務用アカウントで、運用上のサービス導入担当ではなく、サービス導入の権限利用や作業は承認されていません。ただし、この資料から当時の実効権限や昇格の有無は判断できません。標準インベントリ製品はC:\\Program Files\\OpsInventory\\配下を使用します。InvoiceUpdaterというサービス、ProgramData\\Invoice配下のバイナリ、LocalSystemでの自動起動は当日の承認一覧にありません。業務端末のため、停止や削除は上位担当の確認を経て行います。', 'CHG-207 approves only a backup-configuration change on db-01. No new service installation is scheduled on win-fin-01. fin.user is an ordinary finance-business account, not an operations service installer; neither use of installation privileges nor this installation work is approved for it. This record does not establish the account’s effective privileges or whether elevation occurred at that time. The standard inventory product uses C:\\Program Files\\OpsInventory\\. InvoiceUpdater, a binary under ProgramData\\Invoice, and its automatic LocalSystem startup are absent from today’s approvals. Obtain responder review before stopping or deleting anything on this business endpoint.')),
     events: [
       windows('service-persistence-process', iso('2026-10-17', '12:18'), '4688', { subjectUserName: 'fin.user', newProcessName: 'C:\\Windows\\System32\\sc.exe', commandLine: 'sc.exe create InvoiceUpdater binPath= C:\\ProgramData\\Invoice\\updater.exe start= auto obj= LocalSystem', parentProcessName: 'C:\\Windows\\System32\\cmd.exe' }, 'Training: service-creation command observed', 7, ['process_creation']),
       windows('service-persistence-installed', iso('2026-10-17', '12:19'), '7045', { serviceName: 'InvoiceUpdater', imagePath: 'C:\\ProgramData\\Invoice\\updater.exe', startType: 'auto start', accountName: 'LocalSystem' }, 'Training: new auto-start service registered', 10, ['service_installation'])
@@ -261,12 +274,12 @@
     timeRange: { from: iso('2026-10-18', '13:00'), to: iso('2026-10-18', '13:40') },
     disconnected: { id: '003', at: iso('2026-10-18', '13:16') },
     hints: [
-      B('Agentsでstatusを確認し、対象端末のEventsへ移動します。状態の絞り込みはWQLの status=disconnected です。', 'Inspect status in Agents, then investigate that endpoint’s events. The WQL status filter is status=disconnected.'),
+      B('Endpointsでstatusを確認し、対象端末の「イベントを調べる」からThreat Huntingのイベント一覧へ移動します。状態の絞り込みはWQLの status=disconnected です。', 'Inspect status in Endpoints, then select “Investigate events” for the endpoint to open the Threat Hunting event list. The WQL status filter is status=disconnected.'),
       B('db-01の最後の通常ログと、manager側の切断通知は別の観測です。通知の時刻を端末が動いた時刻と混同しないでください。', 'The last normal db-01 log and the manager-side disconnect notification are different observations. Do not mistake notification time for endpoint activity time.'),
-      B('13:15の最終業務ログ、13:16のlastKeepAlive、13:20の切断通知を確認します。保守は13:30までの予定ですが、13:40時点で復旧していません。unknown / medium / verifyが適切です。', 'Check the last business log at 13:15, lastKeepAlive at 13:16, and notification at 13:20. Maintenance should end by 13:30, but recovery is unconfirmed at 13:40. Use unknown / medium / verify.')
+      B('13:15の最終業務ログ、13:16のlastKeepAlive、13:20の切断通知を確認します。保守は13:30までの予定ですが、13:40時点で復旧を確認できません。「判断保留」／「中」／「追加確認を依頼」が適切です。', 'Check the last business log at 13:15, lastKeepAlive at 13:16, and notification at 13:20. Maintenance should end by 13:30, but recovery is unconfirmed at 13:40. Select “Insufficient evidence” / “Medium” / “Request verification”.')
     ],
     documents: documents(gapId,
-      B('対象期間は2026-10-18 13:00–13:40 UTC。db-01は13:15まで定期処理の選定ログがあり、lastKeepAliveは13:16です。13:20の切断イベントはmanager側の状態を教材用ヘルスコレクターが記録したものです。agentは監視対象db-01を示し、13:20にdb-01自身が送信したログではありません。画面のAgents状態は13:40時点のスナップショットです。切断後の端末上の行動は観測できません。', 'Window: 2026-10-18 13:00–13:40 UTC. Selected routine db-01 logs end at 13:15; lastKeepAlive is 13:16. The 13:20 disconnect event is a manager-side state recorded by a training health collector. Its agent identifies monitored db-01; it is not a log sent by db-01 at 13:20. Agents shows a snapshot at 13:40. Endpoint activity after the collection gap is not visible.'),
+      B('対象期間は2026-10-18 13:00–13:40 UTC。db-01は13:15まで定期処理の選定ログがあり、lastKeepAliveは13:16です。13:20の切断イベントはmanager側の状態を教材用ヘルスコレクターが記録したものです。agentは監視対象db-01を示し、13:20にdb-01自身が送信したログではありません。Endpoints画面の状態は13:40時点のスナップショットです。切断後の端末上の行動は観測できません。', 'Window: 2026-10-18 13:00–13:40 UTC. Selected routine db-01 logs end at 13:15; lastKeepAlive is 13:16. The 13:20 disconnect event is a manager-side state recorded by a training health collector. Its agent identifies monitored db-01; it is not a log sent by db-01 at 13:20. Endpoints shows a snapshot at 13:40. Endpoint activity after the collection gap is not visible.'),
       B('ネットワーク保守票 CHG-209', 'Network maintenance CHG-209'),
       B('db-01の接続セグメントを13:15–13:30 UTCに保守します。一時的な監視断は想定内ですが、終了時にエージェント再接続を確認する手順です。13:40時点で完了連絡・復旧確認は未着です。ネットワーク担当へ保守完了、端末担当へエージェントサービス状態を確認してください。保守が原因と断定したり、攻撃による停止と断定したりできる資料はありません。', 'The db-01 network segment is under maintenance from 13:15 to 13:30 UTC. A temporary monitoring gap is expected, but agent reconnection must be checked afterward. At 13:40, neither completion notice nor recovery confirmation has arrived. Ask the network owner about completion and the endpoint owner about the agent service. Available records do not prove maintenance or an attack caused the disconnection.')),
     events: [
@@ -279,7 +292,7 @@
       evidenceGroups: [['collection-gap-last'], ['collection-gap-disconnected']], documentIds: ['collection-gap-scope', 'collection-gap-change'],
       facts: B('db-01の最後の通常ログは13:15 UTC、lastKeepAliveは13:16。managerは13:20に切断を観測し、13:40の状態もdisconnected。13:15–13:30の保守予定はあるが復旧は未確認。欠落期間の端末動作も切断原因も判断できない。', 'The last normal db-01 log is at 13:15 UTC; lastKeepAlive is 13:16. The manager observed disconnection at 13:20, and the 13:40 snapshot still shows disconnected. Maintenance was planned for 13:15–13:30, but recovery is unconfirmed. Endpoint activity during the gap and the cause remain unknown.'),
       nextStep: B('ネットワーク担当に保守完了と経路復旧、端末担当にエージェント稼働・送信状態を確認する。再接続時刻と欠落範囲を記録し、復旧後に遅延ログや追加の異常を確認する。', 'Ask the network owner to verify maintenance completion and connectivity, and the endpoint owner to check agent operation and delivery. Record the reconnection time and gap, then inspect delayed logs or further anomalies after recovery.'),
-      explanation: B('監視対象の状態を把握できないためunknownです。予定保守は候補となる説明ですが、予定時間を過ぎても復旧していないので中優先度で確認を依頼します。ログがないことを正常と扱わないのが要点です。', 'Use unknown because endpoint visibility is missing. Scheduled maintenance is a possible explanation, but unconfirmed recovery beyond its window warrants medium-priority verification. Missing telemetry must not be treated as normal activity.')
+      explanation: B('監視対象の状態を把握できないため「判断保留」です。予定保守は候補となる説明ですが、予定時間を過ぎても復旧を確認できないので、優先度「中」で「追加確認を依頼」を選びます。ログがないことを正常と扱わないのが要点です。', 'Select “Insufficient evidence” because endpoint visibility is missing. Scheduled maintenance is a possible explanation, but unconfirmed recovery beyond its window warrants “Medium” priority and “Request verification”. Missing telemetry must not be treated as normal activity.')
     }
   });
 
@@ -287,13 +300,13 @@
   const mixed = assemble({
     id: mixedId, stage: 'independent',
     title: B('自力調査：同じ時刻の別々の出来事', 'Independent: simultaneous but separate activity'),
-    brief: B('web-01の認証失敗と、win-fin-01のサービス導入が同じ時間帯に見つかりました。調査対象はwin-fin-01の導入です。両者を同じ攻撃と結びつける根拠があるかを確認し、対象端末について報告してください。', 'SSH failures on web-01 and a service installation on win-fin-01 occurred in the same window. Your assigned finding is the win-fin-01 installation. Determine whether evidence links the two as one attack, then report on the assigned endpoint.'),
+    brief: B('web-01の認証失敗と、win-fin-01のサービス導入が同じ時間帯に見つかりました。主な報告対象はwin-fin-01の導入です。win-fin-01のログオン・サービス登録に加え、比較に用いたweb-01の認証失敗も少なくとも1件、証拠に含めてください。「承認済み導入 CHG-212」と「承認済み認証テスト EX-12」を読み、両者を同じ攻撃と結びつける根拠があるかを確認して報告します。', 'SSH failures on web-01 and a service installation on win-fin-01 occurred in the same window. Your primary reporting target is the win-fin-01 installation. Include its logon and service registration plus at least one web-01 authentication failure used for comparison as evidence. Read “Approved deployment CHG-212” and “Approved authentication test EX-12”, then report whether evidence links the two as one attack.'),
     objectives: [B('複数端末を行き来して必要な証拠を選ぶ', 'Move across endpoints and select relevant evidence'), B('時間の一致だけで因果関係を断定しない', 'Avoid inferring causation from time overlap alone'), B('承認範囲とログを独力で照合して報告する', 'Independently compare logs with approvals and report')],
     timeRange: { from: iso('2026-10-19', '14:00'), to: iso('2026-10-19', '14:40') },
     hints: [
       B('まず報告対象と、比較対象の出来事を分けて整理しましょう。結びつけるには時刻以外の一致が必要です。', 'Separate the assigned finding from the activity you are comparing. A connection needs evidence beyond overlapping time.'),
       B('win-fin-01の接続元・利用者・サービスのパスを作業票と照合し、その後web-01の失敗の接続元を確認します。', 'Compare the win-fin-01 source, account, and service path with the change, then inspect the source of the web-01 failures.'),
-      B('14:11のadmin.itoのログオン、14:14のOpsInventory登録、web-01のscancheck失敗を選びます。CHG-212と演習通知EX-12でそれぞれ説明でき、同一攻撃を示す証拠はありません。', 'Select admin.ito’s 14:11 logon, the 14:14 OpsInventory registration, and a web-01 scancheck failure. CHG-212 and exercise EX-12 respectively explain them; no evidence establishes a shared attack.')
+      B('14:11のadmin.itoのログオン、14:14のOpsInventory登録、web-01のscancheck失敗を選びます。「承認済み導入 CHG-212」と「承認済み認証テスト EX-12」でそれぞれ説明でき、同一攻撃を示す証拠はありません。', 'Select admin.ito’s 14:11 logon, the 14:14 OpsInventory registration, and a web-01 scancheck failure. “Approved deployment CHG-212” and “Approved authentication test EX-12” respectively explain them; no evidence establishes a shared attack.')
     ],
     documents: documents(mixedId,
       B('対象期間は2026-10-19 14:00–14:40 UTC。web-01のSSH認証とwin-fin-01のSecurity 4624/System 7045を選定収集しています。4624のlogonType 10はこの教材ではリモート対話ログオンです。7045にはサービス実行アカウントはありますが登録操作を行った人物は記録されていません。直前のログオンと登録を同一人物の操作と確定する接続IDはありません。', 'Window: 2026-10-19 14:00–14:40 UTC. Selected web-01 SSH authentication and win-fin-01 Security 4624/System 7045 events are collected. In this case, logonType 10 represents remote interactive logon. 7045 records the service account but not the person who registered it. There is no session identifier proving that the preceding logon and registration share an actor.'),
@@ -330,7 +343,7 @@
     timeRange: { from: iso('2026-10-20', '15:00'), to: iso('2026-10-20', '15:40') },
     hints: [
       B('FIMで変更されたパスを作業票の対象と照合してください。端末と時間が合うだけでは承認と一致したことになりません。', 'Compare each changed path in FIM with the ticket. Matching endpoint and time alone does not establish approval.'),
-      B('syscheck.path: "/etc/ssh/sshd_config" を確認し、Eventsで同じweb-01の前後のログを調べます。', 'Inspect syscheck.path: "/etc/ssh/sshd_config", then investigate surrounding web-01 activity in Events.'),
+      B('syscheck.path: "/etc/ssh/sshd_config" を確認し、Threat Huntingのイベント一覧で同じweb-01の前後のログを調べます。', 'Inspect syscheck.path: "/etc/ssh/sshd_config", then investigate surrounding web-01 activity in the Threat Hunting event list.'),
       B('15:12のcpコマンド、15:13のsshd_config変更、15:14の承認対象index.html変更を証拠にします。変更前後のハッシュは内容変化を示しますが、設定値や変更による侵入可否は示しません。', 'Select the cp command at 15:12, sshd_config change at 15:13, and approved index.html change at 15:14. Different hashes indicate content change, but not the resulting settings or exploitability.')
     ],
     documents: documents(fimId,

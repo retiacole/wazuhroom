@@ -229,3 +229,126 @@ test('standalone browser UMD export matches CommonJS dataset', () => {
   vm.runInContext(source, context);
   assert.equal(JSON.stringify(context.WazuhContent), JSON.stringify(content));
 });
+
+test('password-failure investigation ends with password success without changing routine public-key logins', () => {
+  const success = byId['auth-chain'].events.find(event => event.id === 'auth-chain-success');
+  assert.match(success.full_log, /Accepted password for ops from 203\.0\.113\.77/);
+  for (const item of content.cases) for (const event of item.events) {
+    if (event.decoder.name !== 'wazuhroom-sshd') continue;
+    if (event.data.action === 'authentication_failed') assert.match(event.full_log, /Failed password for /);
+    else if (event.id !== 'auth-chain-success') assert.match(event.full_log, /Accepted publickey for /, event.id);
+  }
+  assert.match(byId['fim-change'].events.find(event => event.id === 'fim-change-logon').full_log, /Accepted publickey for ops\.kai/);
+});
+
+test('form guidance uses the exact visible localized choices and field labels', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../src/app.js'), 'utf8');
+  const labels = key => {
+    const match = source.match(new RegExp(`\\b${key}:\\['([^']+)','([^']+)'\\]`));
+    assert.ok(match, `visible UI labels exist for ${key}`);
+    return { ja: match[1], en: match[2] };
+  };
+  const choices = ['incident', 'benign', 'unknown', 'high', 'medium', 'low', 'escalate', 'monitor', 'verify'];
+  const fields = ['verdict', 'priority', 'action', 'target', 'facts', 'nextStep'];
+  const tutorialReport = byId.tutorial.steps.find(step => step.kind === 'report');
+  for (const language of ['ja', 'en']) {
+    for (const item of content.cases) {
+      const policy = item.documents.find(doc => doc.id === `${item.id}-runbook`).body[language];
+      for (const key of [...choices, ...fields]) assert.ok(policy.includes(labels(key)[language]), `${item.id}: ${language} ${key}`);
+    }
+    for (const key of [...fields, 'unknown', 'low', 'verify', 'submit']) {
+      assert.ok(tutorialReport.body[language].includes(labels(key)[language]), `tutorial report: ${language} ${key}`);
+    }
+    for (const [id, keys] of [['tutorial', ['unknown', 'low', 'verify']], ['approved-admin', ['benign', 'low', 'monitor']], ['collection-gap', ['unknown', 'medium', 'verify']]]) {
+      for (const key of keys) assert.ok(byId[id].hints[2][language].includes(labels(key)[language]), `${id} hint: ${language} ${key}`);
+    }
+  }
+});
+
+test('every document instruction names the actual scope, change, runbook, and any additional required reference', () => {
+  for (const item of content.cases) {
+    const instruction = item.steps.find(step => step.kind === 'document').body;
+    for (const doc of item.documents) for (const language of ['ja', 'en']) {
+      assert.ok(instruction[language].includes(doc.title[language]), `${item.id}: explicit ${doc.id} in ${language}`);
+    }
+    assert.match(instruction.ja, /「資料」タブ/);
+    assert.match(instruction.en, /References tab/);
+  }
+});
+
+test('instruction improvements preserve existing completion requirements and dataset identity', () => {
+  assert.equal(content.version, 'wazuhroom-1');
+  for (const item of content.cases) {
+    const required = [`${item.id}-scope`, `${item.id}-change`];
+    if (item.id === 'mixed-auth') required.push('mixed-auth-exercise');
+    assert.deepEqual(item.answer.documentIds, required, `${item.id}: existing saves must not gain a runbook requirement`);
+  }
+  assert.deepEqual(byId['mixed-auth'].answer.evidenceGroups, [
+    ['mixed-auth-logon'], ['mixed-auth-service'], ['mixed-auth-failure-1', 'mixed-auth-failure-2', 'mixed-auth-failure-3']
+  ]);
+});
+
+test('mixed investigation asks for comparison evidence and EX-12 before hints are opened', () => {
+  const item = byId['mixed-auth'];
+  const evidence = item.steps.find(step => step.kind === 'evidence').body;
+  const instructions = item.steps.find(step => step.kind === 'document').body;
+  const exercise = item.documents.find(doc => doc.id === 'mixed-auth-exercise');
+  for (const text of [item.brief.ja, evidence.ja]) {
+    assert.match(text, /web-01/);
+    assert.match(text, /認証失敗/);
+    assert.match(text, /少なくとも1件/);
+    assert.match(text, /証拠/);
+  }
+  for (const text of [item.brief.en, evidence.en]) {
+    assert.match(text, /web-01/);
+    assert.match(text, /authentication failure/);
+    assert.match(text, /at least one/);
+    assert.match(text, /evidence/);
+  }
+  for (const language of ['ja', 'en']) {
+    assert.ok(item.brief[language].includes(exercise.title[language]));
+    assert.ok(instructions[language].includes(exercise.title[language]));
+    assert.ok(item.hints[2][language].includes(exercise.title[language]));
+  }
+});
+
+test('collection scope covers all common background sources while preserving the disconnection limit', () => {
+  for (const item of content.cases) {
+    const scope = item.documents.find(doc => doc.id === `${item.id}-scope`).body;
+    for (const language of ['ja', 'en']) for (const term of ['web-01', 'db-01', 'win-fin-01', '10.20.0.5', 'svc.inventory', 'logrotate', 'root', '4624', 'logonType 3', '7036', 'Windows Event Log']) {
+      assert.ok(scope[language].includes(term), `${item.id}: ${language} background ${term}`);
+    }
+    assert.match(scope.ja, /切断後のdb-01から背景ログは届きません/);
+    assert.match(scope.en, /no db-01 background telemetry arrives after disconnection/);
+  }
+  const gap = byId['collection-gap'];
+  const cutoff = gap.agents.find(agent => agent.id === '003').lastKeepAlive;
+  assert.equal(gap.events.filter(event => event.id.includes('-bg-') && event.agent.id === '003' && event.timestamp > cutoff).length, 0);
+});
+
+test('finance role and group-membership removal are explained without asserting unobserved technical impossibility', () => {
+  const role = byId['service-persistence'].documents.find(doc => doc.id === 'service-persistence-change').body;
+  assert.match(role.ja, /fin\.userは経理部門の通常業務用アカウント/);
+  assert.match(role.ja, /サービス導入の権限利用や作業は承認されていません/);
+  assert.match(role.ja, /実効権限や昇格の有無は判断できません/);
+  assert.match(role.en, /fin\.user is an ordinary finance-business account/);
+  assert.match(role.en, /neither use of installation privileges nor this installation work is approved/);
+  assert.match(role.en, /does not establish the account’s effective privileges/);
+  const scope = byId['approved-admin'].documents.find(doc => doc.id === 'approved-admin-scope').body;
+  assert.match(scope.ja, /4733（ローカルグループからのメンバー削除）/);
+  assert.match(scope.en, /4733 \(member removal from a local group\)/);
+  assert.match(scope.ja, /アカウントやグループ自体の削除ではありません/);
+  assert.match(scope.en, /does not mean the account or group itself was deleted/);
+});
+
+test('navigation guidance points to Endpoints and the Threat Hunting event list', () => {
+  for (const item of content.cases) {
+    const prose = JSON.stringify([item.brief, item.hints, item.steps]);
+    assert.doesNotMatch(prose, /\bAgents\b|\bEvents\b/, `${item.id}: no unavailable navigation label`);
+  }
+  const search = byId.tutorial.steps.find(step => step.kind === 'search').body;
+  for (const language of ['ja', 'en']) assert.ok(search[language].includes('Endpoints'));
+  const events = byId.tutorial.steps.find(step => step.kind === 'events').body;
+  assert.match(events.ja, /Threat Hunting.*イベント一覧/);
+  assert.match(events.en, /Threat Hunting.*event list/);
+});

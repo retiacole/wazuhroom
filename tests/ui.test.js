@@ -2,6 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {JSDOM,VirtualConsole}=require('jsdom');
 const C=require('../src/content.js');
+const E=require('../src/engine.js');
 const html=fs.readFileSync(path.join(__dirname,'../wazuhroom.html'),'utf8');
 function setup(lang='en',saved){
  const errors=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errors.push(e));
@@ -69,4 +70,53 @@ test('distribution is identical, self-contained, and forbids network connections
  assert.equal(html,fs.readFileSync(path.join(__dirname,'../docs/index.html'),'utf8'));
  assert.equal(html,fs.readFileSync(path.join(__dirname,'../docs/wazuhroom.html'),'utf8'));
  assert.match(html,/connect-src 'none'/);assert.doesNotMatch(html,/<script[^>]+src=|<link[^>]+href=|@import\s|url\(\s*https?:|\bfetch\(/i);
+});
+
+for(const lang of ['ja','en'])test('instructions reveal mixed-case requirements without hints in '+lang,()=>{
+ const u=setup(lang);const {click,submit,d,savedState}=u;
+ try{
+ const c=C.cases.find(c=>c.id==='mixed-auth');
+ click('[data-action="case"][data-id="mixed-auth"]');
+ const instructions=[...d.querySelectorAll('.step-instruction')];
+ assert.equal(instructions.length,c.steps.length);
+ for(const step of c.steps)assert.ok(instructions.some(el=>el.textContent.includes(step.body[lang])));
+ assert.match(d.querySelector('.coach-body').textContent,/web-01/);
+ assert.match(d.querySelector('.coach-body').textContent,/EX-12/);
+ assert.equal(savedState().records[c.id].hint,0);
+ click('[data-action="coach-tab"][data-tab="refs"]');
+ const requiredText=lang==='ja'?'提出に必要':'Required for submission';
+ const required=[...d.querySelectorAll('.doc-button')].filter(el=>el.querySelector('.tag').textContent===requiredText);
+ assert.deepEqual(required.map(el=>el.dataset.id).sort(),[...c.answer.documentIds].sort());
+ click('[data-action="coach-tab"][data-tab="report"]');
+ assert.match(d.querySelector('.coach-body h3').textContent,lang==='ja'?/選択 0 件 \/ 上限 5 件/:/Selected 0 \/ limit 5/);
+ submit('report-form');
+ assert.equal(savedState().records[c.id].feedback.passed,false);
+ for(const id of c.answer.documentIds)assert.ok(d.querySelector('.missing-docs').textContent.includes(c.documents.find(doc=>doc.id===id).title[lang]));
+ click('[data-action="show-model"]');
+ assert.ok(d.querySelector('.coach-body').textContent.includes(c.answer.facts[lang]));
+ assert.equal(savedState().records[c.id].completed,false);
+ assert.equal(u.errors.length,0);
+ }finally{u.dom.window.close();}
+});
+
+for(const lang of ['ja','en'])test('policy uses report labels and documented DQL examples work in '+lang,()=>{
+ const u=setup(lang);const {click,d}=u;
+ try{
+ click('[data-action="case"][data-id="tutorial"]');
+ click('[data-action="coach-tab"][data-tab="report"]');
+ const labels=['verdict','priority','action'].flatMap(key=>[...d.querySelectorAll('#report-'+key+' option')].filter(option=>option.value).map(option=>option.textContent));
+ for(const c of C.cases){
+  const policy=c.documents.find(doc=>doc.id===c.id+'-runbook').body[lang];
+  for(const label of labels)assert.ok(policy.includes(label),c.id+': '+label);
+ }
+ click('[data-action="help"]');
+ const body=d.querySelector('#dialog-body');
+ const allEvents=C.cases.flatMap(c=>c.events);
+ for(const query of body.querySelector('.query-examples').textContent.split('\n'))assert.doesNotThrow(()=>E.search(allEvents,{query}));
+ for(const query of body.querySelector('.path-examples').textContent.split('\n'))assert.ok(E.search(allEvents,{query}).length>0,query);
+ assert.match(body.textContent,/data\.win\.eventdata\.logonType/);
+ assert.match(body.textContent,/data\.srcport/);
+ assert.match(body.textContent,lang==='ja'?/合否にかかわらず/:/whether it passes or fails/);
+ assert.equal(u.errors.length,0);
+ }finally{u.dom.window.close();}
 });

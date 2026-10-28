@@ -22,6 +22,8 @@
     'decoder.name': 'keyword', full_log: 'text',
     'syscheck.path': 'keyword', 'syscheck.event': 'keyword',
     'syscheck.sha256_before': 'keyword', 'syscheck.sha256_after': 'keyword',
+    // These are the room's established teaching types, not a claim about every Wazuh index mapping.
+    // Keep them stable so v0.1 numeric query/filter saves remain executable.
     'data.srcip': 'keyword', 'data.dstip': 'keyword', 'data.srcport': 'number', 'data.dstport': 'number',
     'data.srcuser': 'keyword', 'data.dstuser': 'keyword', 'data.user': 'keyword',
     'data.action': 'keyword', 'data.status': 'keyword', 'data.lastKeepAlive': 'keyword',
@@ -270,7 +272,7 @@
       { key: 'facts', passed: prose(report.facts) },
       { key: 'nextStep', passed: prose(report.nextStep) }
     ];
-    return { passed: checks.every(check => check.passed), checks, score: checks.filter(check => check.passed).length * 10 };
+    return { passed: checks.every(check => check.passed), checks };
   }
   function safeTree(value, seen = new Set(), depth = 0, budget = { count: 0 }) {
     if (++budget.count > 100000 || depth > 20) fail('Save data is too large or deeply nested.');
