@@ -1,0 +1,17 @@
+{
+  "name": "wazuhroom",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Experience the basic SOC workflow and operations using Wazuh. Offline, Japanese and English.",
+  "scripts": {
+    "build": "node build.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
+}

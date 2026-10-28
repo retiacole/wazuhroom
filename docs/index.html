@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="description" content="WazuhをつかったSOC業務の基本フローと操作方法を体験するコンテンツ。Japanese / English. Offline educational simulator.">
+<title>Wazuhroom — SOC workflow lab</title>
+<style>:root{--ink:#263548;--muted:#64758a;--blue:#0076b4;--blue-soft:#eaf5fc;--navy:#172a40;--line:#d7dfe8;--bg:#f5f7fa;--green:#007d79;--red:#bc3434;--amber:#b46b08;--shadow:0 1px 3px #152f4812;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;color:var(--ink);background:var(--bg);font-size:14px}*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}button,a,input,select,textarea{touch-action:manipulation}button{cursor:pointer;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink);padding:8px 12px;line-height:1.35}button:hover{border-color:var(--blue);background:#f0f8fd}button:disabled{cursor:default;opacity:.45}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid #64aee0;outline-offset:3px}a{color:var(--blue)}h1,h2,h3,p{margin-top:0}h1{font-size:28px;line-height:1.45;letter-spacing:-.02em}h2{font-size:20px;line-height:1.5}h3{font-size:15px;line-height:1.5}p{line-height:1.8}small,.muted{color:var(--muted)}code,pre,.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}code{font-size:12px}pre{font-size:12px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}label{display:block;font-size:12px;font-weight:600;margin-bottom:5px}input,select,textarea{border:1px solid #b7c5d5;border-radius:3px;background:white;color:var(--ink);padding:8px;width:100%;min-width:0}textarea{resize:vertical;min-height:90px;font-weight:400;line-height:1.6}.skip{position:fixed;left:10px;top:-70px;z-index:100;background:white;padding:12px}.skip:focus{top:10px}.topbar{min-height:60px;border-bottom:1px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 24px}.brand{border:0;background:none!important;padding:0;display:flex;gap:10px;align-items:center;text-align:left}.brand-icon{display:grid;place-items:center;background:var(--navy);color:white;width:34px;height:38px;clip-path:polygon(0 0,100% 0,100% 68%,50% 100%,0 68%);font-size:18px;font-weight:800}.brand strong{font-size:20px;letter-spacing:-.5px}.version{font-size:11px;color:var(--muted);font-weight:400}.top-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.top-actions select{width:auto}.primary{background:var(--blue);border-color:var(--blue);color:white}.primary:hover{background:#005e92;color:white}.quiet{border-color:transparent;color:var(--blue);background:transparent}.small{font-size:12px;padding:5px 8px}.tag{display:inline-flex;padding:3px 7px;background:#eef2f6;color:#4e6075;border-radius:3px;font-size:11px;font-weight:600}.tag.green{color:#006b64;background:#e4f5f0}.tag.blue{background:var(--blue-soft);color:#006396}.home{max-width:1180px;margin:auto;padding:40px 28px 70px}.hero{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:40px;align-items:center;margin-bottom:28px}.eyebrow{color:var(--blue);font-size:11px;font-weight:750;letter-spacing:.13em;margin-bottom:12px}.hero h1{max-width:760px;font-size:32px;margin:0 0 16px}.hero p{max-width:710px;color:var(--muted);margin-bottom:18px}.hero-note{background:var(--navy);color:#e6eff8;padding:24px;border-radius:8px}.hero-note strong{display:block;font-size:15px;margin-bottom:16px}.flow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.flow span{padding:5px 9px;background:#fff1;border:1px solid #ffffff2a;border-radius:3px;font-size:12px}.progressline{height:6px;border-radius:3px;background:#e3e9f0;overflow:hidden}.progressline i{display:block;height:100%;background:var(--green)}.section-line{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:28px 0 16px}.section-line h2{margin:0}.case-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.case-card{background:white;border:1px solid var(--line);box-shadow:var(--shadow);border-radius:6px;display:flex;flex-direction:column;min-height:230px;padding:20px}.case-card.tutorial{grid-column:1/-1;min-height:0;border-left:4px solid var(--blue);display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:24px}.case-card h3{font-size:17px;margin:12px 0}.case-card p{font-size:13px;line-height:1.7;margin-bottom:18px;color:var(--muted)}.case-card button{margin-top:auto;align-self:flex-start}.card-meta{display:flex;gap:8px;align-items:center}.home-footer{margin-top:30px;border-top:1px solid var(--line);padding-top:22px;color:var(--muted);font-size:12px}.home-footer a{margin-right:12px}.lab-layout{display:grid;grid-template-columns:205px minmax(0,1fr);min-height:calc(100vh - 60px)}.sidebar{background:#fff;border-right:1px solid var(--line);padding:20px 12px}.sidebar-label{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:20px 10px 8px}.nav-btn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:transparent;border:0;padding:11px 12px;border-radius:3px;font-size:13px;margin:3px 0}.nav-btn.active{background:#eaf5fc;color:#006a9f;box-shadow:inset 3px 0 var(--blue);font-weight:650}.nav-icon{width:17px;font-size:16px}.sidebar-bottom{padding:24px 10px 0;border-top:1px solid var(--line);margin-top:30px;font-size:11px;color:var(--muted);line-height:1.8}.workspace{min-width:0}.crumb{height:43px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 20px;color:var(--muted);font-size:12px}.crumb strong{background:#dceefa;color:#315b7a;padding:3px 10px;border-radius:3px;font-weight:600}.work-grid{display:grid;grid-template-columns:minmax(0,1fr) 338px;align-items:start}.analysis{padding:22px;min-width:0}.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px}.page-head h1{font-size:25px;margin-bottom:4px}.page-head p{margin:0;font-size:12px;color:var(--muted)}.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px}.stat{background:#fff;border:1px solid var(--line);border-radius:4px;padding:18px;box-shadow:var(--shadow)}.stat span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}.stat strong{display:block;font-size:30px;font-weight:500;margin-top:5px;color:var(--blue)}.stat.alert strong{color:var(--red)}.stat.good strong{color:var(--green)}.panel{background:#fff;border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow);margin-bottom:18px}.panel-head{padding:15px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}.panel-head h2,.panel-head h3{margin:0;font-size:15px}.panel-content{padding:18px}.module-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.module-card{padding:20px;text-align:left;min-height:130px}.module-card strong{display:block;font-size:17px;color:var(--blue);margin-bottom:8px}.module-card span{display:block;font-size:12px;line-height:1.7;color:var(--muted)}.searchbar{display:flex;align-items:stretch;gap:0;margin-bottom:12px}.searchbar input{border-radius:3px 0 0 3px;min-width:0;font-family:ui-monospace,SFMono-Regular,monospace;font-size:13px}.search-type{padding:10px 8px;border:1px solid #b7c5d5;border-left:0;font-size:11px;color:var(--blue);display:flex;align-items:center}.searchbar button{margin-left:7px}.timebar{display:grid;grid-template-columns:1fr 1fr auto auto;align-items:end;gap:8px;background:#f8fafc;border:1px solid var(--line);padding:10px;margin-bottom:12px}.timebar input{font-size:12px}.filterbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px}.filter-chip{display:flex;align-items:center;border:1px solid #8dc8e4;background:#eaf7fe;border-radius:3px;font-size:11px;padding-left:7px}.filter-chip.excluded{background:#fef1ef;border-color:#e3ada7}.filter-chip.disabled{opacity:.5}.filter-chip button{background:none;border:0;color:inherit;padding:5px}.filter-chip code{font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.error{padding:12px;border:1px solid #e7b8b2;background:#fff3f0;color:#9c3030;margin-bottom:12px;border-radius:3px;line-height:1.6}.info{padding:11px 13px;border-left:3px solid var(--blue);background:#edf6fb;font-size:12px;line-height:1.7;margin-bottom:14px}.chart{display:flex;height:105px;align-items:flex-end;gap:3px;padding:10px 0 0;border-bottom:1px solid var(--line)}.chart button{flex:1;min-width:0;background:#4e9dc3;border:0;border-radius:2px 2px 0 0;padding:0;min-height:2px;position:relative}.chart button:hover{background:#006da2}.chart button span{font-size:9px;color:var(--muted);position:absolute;bottom:calc(100% + 2px);left:50%;transform:translateX(-50%)}.chart-axis{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);padding:6px 0}.table-scroll{overflow:auto;max-width:100%}table{border-collapse:collapse;width:100%;font-size:12px;text-align:left}th{color:#4d6074;font-weight:650;background:#f7f9fb}th,td{padding:11px 10px;border-bottom:1px solid #e4eaf1;vertical-align:top}thead th{white-space:nowrap}tbody tr:hover{background:#f9fcff}td .quiet{font-size:12px;padding:0;max-width:190px;text-align:left;overflow-wrap:anywhere}.row-id{color:var(--muted);font-size:10px;display:block;margin-top:4px}.level{display:inline-grid;place-items:center;border-radius:3px;min-width:25px;height:23px;background:#eef2f5;color:#516272;font-size:11px;font-weight:700}.level.high{background:#fbe9e8;color:#b62d2d}.level.medium{background:#fff1d6;color:#996007}.event-description{min-width:170px;max-width:290px;line-height:1.5}.expand-btn{font-size:15px;border:0;background:none;padding:0 4px;color:var(--blue)}.event-detail{background:#f4f8fc;padding:16px}.detail-tabs{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.detail-tabs h3{margin:0}.fields{display:grid;grid-template-columns:minmax(120px,.8fr) minmax(0,1.2fr) 60px;gap:0}.fields>div{padding:7px;border-bottom:1px solid #dae4ef;font-size:11px;overflow-wrap:anywhere}.fields>div:nth-child(3n+1){font-family:monospace}.fields button{font-size:11px;padding:0 5px;border:0;color:var(--blue)}.pagination{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 15px;font-size:11px;color:var(--muted)}.status{display:inline-flex;align-items:center;gap:5px}.status:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--green)}.status.disconnected:before{background:var(--red)}.coach{background:#fff;border-left:1px solid var(--line);min-height:calc(100vh - 103px);position:sticky;top:0}.coach-header{padding:18px 18px 12px;background:#f4f8fb}.coach-header .eyebrow{font-size:10px;margin-bottom:7px}.coach-header h2{font-size:16px;margin:0 0 9px;line-height:1.65}.coach-tabs{display:flex;border-bottom:1px solid var(--line);background:#fff}.coach-tabs button{flex:1;border:0;border-radius:0;font-size:12px;padding:12px 5px}.coach-tabs button.active{box-shadow:inset 0 -3px var(--blue);color:var(--blue);font-weight:700}.coach-body{padding:18px;font-size:12px;line-height:1.75;max-height:calc(100vh - 210px);overflow:auto}.coach-body h3{font-size:13px}.coach-body p{font-size:12px}.steps{list-style:none;padding:0;margin:16px 0}.steps li{position:relative;display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;padding:10px 0;border-bottom:1px solid #edf1f6}.step-number{border:1px solid #a8bbcd;width:21px;height:21px;border-radius:50%;display:grid;place-items:center;font-size:10px;color:var(--muted)}.steps li.done .step-number{background:var(--green);border-color:var(--green);color:white}.steps li.current .step-number{background:var(--blue);border-color:var(--blue);color:white}.steps li strong{font-size:12px}.steps li p{margin:5px 0 8px;color:var(--muted)}.step-help{padding:12px;background:#eaf5fc;border:1px solid #bcd8ed;border-radius:4px;margin-bottom:12px}.doc-button{width:100%;text-align:left;margin:0 0 8px;padding:12px;font-size:12px}.doc-body{white-space:pre-wrap;font-size:13px;line-height:1.9}.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}.report-grid label{font-size:11px}.report-grid select{font-size:12px}.report-field{margin-bottom:12px}.evidence-item{padding:7px 0;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:6px;font-size:11px}.evidence-item span{flex:1;overflow-wrap:anywhere}.evidence-item button{padding:1px 5px}.checks{padding-left:0;list-style:none}.checks li{padding:4px 0;font-size:12px}.checks .yes{color:var(--green)}.checks .no{color:var(--red)}.success{padding:14px;background:#e8f6ef;border:1px solid #a5d5bc;border-radius:4px;margin-bottom:12px}.success h3{color:#006d4c;margin-bottom:6px}.review{border-top:1px solid var(--line);padding-top:16px;margin-top:16px}.guide-target{box-shadow:0 0 0 3px #72b7d7,0 0 0 6px #bce8fb80!important}.notice{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:40;padding:11px 18px;background:#233b50;color:white;border-radius:5px;box-shadow:0 3px 16px #0002;max-width:90vw;font-size:12px;display:none}.notice.show{display:block}dialog{border:1px solid var(--line);border-radius:8px;padding:24px;max-width:680px;width:calc(100% - 32px);max-height:85vh;color:var(--ink);box-shadow:0 20px 70px #122b4155}dialog::backdrop{background:#152c4566}.dialog-head{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:18px}.dialog-head h2{margin:0;font-size:20px}.dialog-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}.empty{padding:35px;text-align:center;color:var(--muted);line-height:1.8}.columns{display:flex;gap:12px;flex-wrap:wrap;padding:10px 15px;border-bottom:1px solid var(--line)}.columns label{font-size:11px;font-weight:400;margin:0}.columns input{width:auto;vertical-align:middle}.chart-title{display:flex;align-items:center;justify-content:space-between}.chart-title h3{margin:0}.mobile-note{display:none}.footer-note{font-size:11px;color:var(--muted);line-height:1.7;margin-top:14px}.donut-row{display:flex;align-items:center;gap:20px}.donut{border-radius:50%;width:115px;height:115px;display:grid;place-items:center;flex-shrink:0}.donut i{display:grid;place-items:center;background:white;width:80px;height:80px;border-radius:50%;font-size:24px;font-style:normal;color:var(--ink)}.legend{font-size:12px;line-height:2}.legend b{font-weight:600}.inline-list{padding-left:20px}.inline-list li{margin-bottom:7px}
+@media(min-width:1600px){.work-grid{grid-template-columns:minmax(0,1fr) 375px}.coach-body{padding:22px}.analysis{padding:26px}.lab-layout{grid-template-columns:220px minmax(0,1fr)}}
+@media(max-width:1150px){.lab-layout{grid-template-columns:165px minmax(0,1fr)}.work-grid{grid-template-columns:minmax(0,1fr) 300px}.analysis{padding:15px}.sidebar{padding:15px 7px}.nav-btn{padding:10px 8px;font-size:12px}.timebar{grid-template-columns:1fr 1fr}.stats{gap:8px}.stat{padding:12px}.topbar{padding:10px 15px}}
+@media(max-width:900px){.lab-layout{grid-template-columns:1fr}.sidebar{border-right:0;border-bottom:1px solid var(--line);display:flex;overflow:auto;padding:5px 10px;gap:5px}.nav-btn{width:auto;white-space:nowrap}.sidebar-label,.sidebar-bottom{display:none}.work-grid{grid-template-columns:minmax(0,1fr) 290px}.hero{grid-template-columns:1fr}.hero-note{display:none}.case-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.coach{min-height:0}.top-actions .small{font-size:11px}.brand strong{font-size:18px}.stats{grid-template-columns:repeat(3,minmax(0,1fr))}.stat span{font-size:9px}.stat strong{font-size:24px}.module-grid{grid-template-columns:1fr}.page-head h1{font-size:21px}}
+@media(max-width:680px){.topbar{align-items:flex-start;gap:10px;flex-wrap:wrap}.top-actions{width:100%;justify-content:flex-start}.home{padding:25px 18px 40px}.hero{gap:0;margin-bottom:20px}.hero h1{font-size:26px}.case-grid{grid-template-columns:1fr}.case-card.tutorial{grid-template-columns:1fr;gap:0}.work-grid{display:flex;flex-direction:column}.analysis{width:100%;padding:14px}.coach{width:100%;position:static;border-left:0;border-top:2px solid var(--line)}.coach-body{max-height:none}.coach-header{padding:16px}.coach-tabs{position:sticky;top:0;z-index:2}.crumb{padding:0 14px;font-size:10px}.page-head{margin-bottom:15px}.stats{gap:6px}.stat{padding:10px}.searchbar button{padding:7px}.chart{height:90px}.module-grid{grid-template-columns:1fr 1fr}.module-card{padding:12px;min-height:110px}.module-card strong{font-size:14px}.module-card span{font-size:11px}.mobile-note{display:block}.section-line{align-items:flex-start}.section-line h2{font-size:18px}.donut-row{gap:12px}.donut{width:90px;height:90px}.donut i{width:63px;height:63px}.panel-content{padding:13px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+/* Keep form controls inside small viewports. */
+.searchbar button{white-space:nowrap;flex-shrink:0;min-width:62px}
+.timebar>div{min-width:0}
+@media(max-width:1150px){.timebar{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.mobile-note{padding:10px 14px;background:#edf6fb;font-size:12px}
+.mobile-note a{margin-right:18px}
+</style>
+</head>
+<body data-version="0.1.0">
+<a class="skip" href="#main">Skip to content / 本文へ</a>
+<div id="app"></div>
+<div id="notice" class="notice" role="status" aria-live="polite"></div>
+<dialog id="dialog"><div id="dialog-body"></div></dialog>
+<input id="import-file" type="file" accept=".json,application/json" hidden>
+<noscript>This lab requires JavaScript. この教材にはJavaScriptが必要です。</noscript>
+<script>(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.WazuhContent = factory();
+}(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  const B = (ja, en) => ({ ja, en });
+  const copy = value => JSON.parse(JSON.stringify(value));
+  const iso = (date, clock) => `${date}T${clock}:00.000Z`;
+  const profiles = [
+    { id: '001', name: 'web-01', ip: '10.20.1.11', os: { name: 'Ubuntu', platform: 'ubuntu', version: '24.04' } },
+    { id: '002', name: 'win-fin-01', ip: '10.20.2.21', os: { name: 'Microsoft Windows 11', platform: 'windows', version: '24H2' } },
+    { id: '003', name: 'db-01', ip: '10.20.3.31', os: { name: 'Debian', platform: 'debian', version: '12' } }
+  ];
+
+  function agentSnapshot(end, disconnected) {
+    return profiles.map(profile => ({
+      ...copy(profile),
+      status: disconnected && profile.id === disconnected.id ? 'disconnected' : 'active',
+      lastKeepAlive: disconnected && profile.id === disconnected.id ? disconnected.at : end
+    }));
+  }
+
+  function event(id, timestamp, agentId, ruleId, level, description, groups, decoder, data, fullLog, extra) {
+    const agent = profiles.find(item => item.id === agentId);
+    return {
+      id, timestamp,
+      agent: { id: agent.id, name: agent.name, ip: agent.ip },
+      rule: { id: String(ruleId), level, description, groups },
+      decoder: { name: decoder }, data, full_log: fullLog,
+      ...(extra || {})
+    };
+  }
+
+  function ssh(id, timestamp, agentId, accepted, user, source, port) {
+    const host = profiles.find(item => item.id === agentId).name;
+    const data = { srcip: source, srcport: port || 42022, dstuser: user, action: accepted ? 'authentication_success' : 'authentication_failed' };
+    const message = accepted
+      ? `Accepted publickey for ${user} from ${source} port ${data.srcport} ssh2`
+      : `Failed password for ${user} from ${source} port ${data.srcport} ssh2`;
+    return event(id, timestamp, agentId, accepted ? 100011 : 100010, accepted ? 3 : 5,
+      accepted ? 'Training: SSH authentication succeeded' : 'Training: SSH authentication failed',
+      ['wazuhroom', 'sshd', accepted ? 'authentication_success' : 'authentication_failed'],
+      'wazuhroom-sshd', data, `${timestamp} ${host} sshd[2481]: ${message}`);
+  }
+
+  function windows(id, timestamp, eventId, data, description, level, groups) {
+    const system = { eventID: String(eventId), providerName: eventId === '7045' || eventId === '7036' ? 'Service Control Manager' : 'Microsoft-Windows-Security-Auditing', computer: 'win-fin-01', channel: eventId === '7045' || eventId === '7036' ? 'System' : 'Security' };
+    const win = { system, eventdata: data };
+    const rules = { '4624': 100020, '4720': 100021, '4732': 100022, '4733': 100023, '7045': 100024, '7036': 100025, '4688': 100026 };
+    return event(id, timestamp, '002', rules[eventId], level, description,
+      ['wazuhroom', 'windows', ...(groups || [])], 'wazuhroom-windows', { win }, JSON.stringify({ win }));
+  }
+
+  function background(caseId, from, to, cutoff) {
+    const start = Date.parse(from);
+    const span = Date.parse(to) - start;
+    return Array.from({ length: 48 }, (_, index) => {
+      const timestamp = new Date(start + Math.round((index + 1) * span / 50)).toISOString();
+      let profile = profiles[index % profiles.length];
+      if (cutoff && profile.id === cutoff.id && timestamp > cutoff.at) profile = profiles[index % 2];
+      const id = `${caseId}-bg-${String(index + 1).padStart(2, '0')}`;
+      if (profile.id === '002') {
+        if (index % 2 === 0) return windows(id, timestamp, '4624', {
+          targetUserName: 'svc.inventory', ipAddress: '10.20.0.5', logonType: 3
+        }, 'Training: Windows authentication succeeded', 3, ['authentication_success', 'routine']);
+        return windows(id, timestamp, '7036', {
+          serviceName: 'Windows Event Log', action: 'running'
+        }, 'Training: monitored service status', 3, ['service_status', 'routine']);
+      }
+      if (index % 2 === 0) return ssh(id, timestamp, profile.id, true, 'svc.inventory', '10.20.0.5', 41000 + index);
+      return event(id, timestamp, profile.id, 100001, 3, 'Training: scheduled job completed',
+        ['wazuhroom', 'scheduled_task', 'routine'], 'wazuhroom-scheduler',
+        { dstuser: 'root', service: 'logrotate', action: 'job_completed' },
+        `${timestamp} ${profile.name} room-scheduler: user=root job=logrotate result=completed`);
+    });
+  }
+
+  const provenance = B(
+    'このケースは架空の演習データです。rule.id 100001–100099 と wazuhroom-* decoder は教材専用で、Wazuh標準ルールの出力を実機で検証したものではありません。背景の正常動作も学習用カスタムルールによりlevel 3以上のイベントとして表示しています。実環境で同じ正常動作が必ずアラートになるとは限りません。IPアドレス・ユーザー名・ハッシュは架空です。全時刻はUTCで、期間内の選定ログだけを表示します。検索結果がないことは、未収集の動作や期間外の動作がなかった証明にはなりません。',
+    'This case uses fictional training data. Rule IDs 100001–100099 and wazuhroom-* decoders are educational definitions, not outputs verified against a live Wazuh installation. Routine background activity is also represented as level 3 or higher events by training rules; the same activity need not produce alerts in a real deployment. IPs, users, and hashes are fictional. All times are UTC. Only selected logs in the case window are shown. An empty search does not prove that uncollected or out-of-window activity never occurred.'
+  );
+  const runbook = B(
+    '一次対応の判断基準：incident＝インシデント候補として引き継ぐ、benign＝承認済み作業と証拠が一致、unknown＝判断に必要な観測が不足。優先度high＝不審な認証成功後の権限操作、承認外の自動起動サービス、重要な認証設定の承認外変更。medium＝予定時間を超えて復旧未確認の監視欠落。low＝単独の認証失敗、または承認済み作業との一致。actionはescalate（上位担当へ引継ぎ）、verify（担当者・収集経路へ確認）、monitor（記録を残して継続監視）。端末、時刻、根拠イベント、参照文書、未確認事項、次の確認先を短く報告してください。rule.levelは調査の入口であり、侵害の確定や業務優先度そのものではありません。教材の報告・採点欄はWazuhroom独自機能です。',
+    'Triage policy: incident means escalate as an incident candidate; benign means evidence matches approved work; unknown means important observations are missing. High priority: suspicious successful authentication followed by privileged activity, an unapproved auto-start service, or an unapproved change to critical authentication configuration. Medium: a collection gap with recovery unconfirmed beyond its planned window. Low: a single authentication failure or activity matching approved work. Actions: escalate to the senior responder, verify with the owner or collection team, or monitor while retaining the record. Report the endpoint, time, supporting events, documents, unknowns, and the next owner/check. A rule level is a lead, not proof of compromise or the business priority itself. The report and scoring panel belongs to Wazuhroom, not the Wazuh product.'
+  );
+
+  function document(id, title, body) { return { id, title, body }; }
+  function documents(caseId, scope, title, change, extra) {
+    return [
+      document(`${caseId}-scope`, B('収集範囲とデータの読み方', 'Collection scope and data notes'), B(`${scope.ja}\n\n${provenance.ja}`, `${scope.en}\n\n${provenance.en}`)),
+      document(`${caseId}-change`, title, change),
+      document(`${caseId}-runbook`, B('SOC一次対応の判断基準', 'SOC triage policy'), runbook),
+      ...(extra || [])
+    ];
+  }
+
+  function step(caseId, kind, title, body) { return { id: `${caseId}-${kind}`, kind, title, body }; }
+  function standardSteps(caseId, stage, target) {
+    const result = [];
+    if (stage === 'guided') {
+      result.push(step(caseId, 'events', B('Eventsを開く', 'Open Events'), B('Threat HuntingのEventsで一覧を開きます。課題パネルを見ただけでは操作は完了しません。', 'Open the event list in Threat Hunting. Viewing the task panel alone does not complete an operation.')));
+      result.push(step(caseId, 'range', B('調査期間を適用する', 'Apply the investigation window'), B('開始・終了を確認し、期間を適用してください。すべてUTCです。時間を絞りすぎたらケースの期間に戻します。', 'Check and apply the start and end time. Times are UTC. Restore the case window if a narrow interval hides context.')));
+    }
+    result.push(step(caseId, 'search', B('関連ログを絞り込む', 'Filter related events'), B(`対象は${target}です。DQL検索またはフィルターを実行し、必要に応じて条件を外して前後の出来事を確認します。`, `Investigate ${target}. Run a DQL search or apply a filter, then remove conditions when needed to inspect surrounding activity.`)));
+    result.push(step(caseId, 'detail', B('詳細と元ログを読む', 'Read details and the original log'), B('関係する行を展開して、agent、時刻、rule、data、full_logを確認します。表示されない項目は推測で補いません。', 'Expand a relevant row and inspect the agent, time, rule, data, and full_log. Do not invent values for absent fields.')));
+    result.push(step(caseId, 'evidence', B('判断を支える証拠を選ぶ', 'Select supporting evidence'), B('結論に必要なイベントを証拠として追加します。大量の正常ログを選ぶより、出来事のつながりを説明できる少数の記録を選びます。', 'Add the events needed to support your conclusion. Prefer a few records that explain the sequence over many unrelated routine events.')));
+    result.push(step(caseId, 'document', B('収集範囲と作業記録を読む', 'Read scope and work records'), B('「収集範囲とデータの読み方」と作業・引継ぎ文書を開いて読了を記録してください。ログと文書の端末・時刻・利用者・対象を照合します。', 'Read and mark the collection-scope document and the work/handover record. Compare the endpoint, time, account, and target with the logs.')));
+    result.push(step(caseId, 'report', B('根拠付きで一次報告する', 'Submit an evidence-based report'), B('判定、優先度、次の対応、対象端末を選びます。観測した事実と未確認事項を書き、誰に何を確認するかを報告してください。', 'Select a verdict, priority, action, and endpoint. Separate observed facts from unknowns, and state who should check what next.')));
+    return result;
+  }
+
+  function assemble(config) {
+    const events = background(config.id, config.timeRange.from, config.timeRange.to, config.disconnected)
+      .concat(config.events).sort((a, b) => a.timestamp.localeCompare(b.timestamp) || a.id.localeCompare(b.id));
+    const { disconnected, ...rest } = config;
+    return { ...rest, agents: agentSnapshot(config.timeRange.to, disconnected), events };
+  }
+
+  const tutorialId = 'tutorial';
+  const tutorial = assemble({
+    id: tutorialId, stage: 'tutorial',
+    title: B('操作入門：1件の認証失敗を調べる', 'First investigation: one failed login'),
+    brief: B('web-01でSSH認証失敗が1件通知されました。画面を操作して事実を読み取り、判断できる範囲を報告しましょう。ここでは正解を急がず、検索から証拠・文書・報告までの一連の流れを体験します。', 'An SSH authentication failure was reported on web-01. Use the interface to inspect the facts and report what can be concluded. Practise the complete search, evidence, document, and reporting workflow.'),
+    objectives: [
+      B('期間・検索・フィルターで必要なイベントを探す', 'Find relevant events using time, search, and filters'),
+      B('詳細のフィールドと元ログを読み、証拠に保存する', 'Read structured fields and the original log, then save evidence'),
+      B('認証失敗と侵害成功を区別して一次報告する', 'Distinguish a failed login from a successful compromise')
+    ],
+    timeRange: { from: iso('2026-10-14', '09:00'), to: iso('2026-10-14', '09:30') },
+    hints: [
+      B('Eventsを開き、ケースの期間を適用してから agent.name: "web-01" を検索してみましょう。', 'Open Events, apply the case time window, then try agent.name: "web-01".'),
+      B('data.action: "authentication_failed" を追加すると通知対象が見つかります。行を開いて data.srcip と data.dstuser を読みます。', 'Add data.action: "authentication_failed" to find the reported event. Expand it and read data.srcip and data.dstuser.'),
+      B('1件の失敗は認証成功の証拠ではありません。証拠1件と収集範囲・引継ぎ文書をそろえ、unknown / low / verify、web-01で報告できます。', 'A single failure is not proof of successful access. Keep that event plus the scope and handover documents; the expected triage is unknown / low / verify for web-01.')
+    ],
+    documents: documents(tutorialId,
+      B('対象期間は2026-10-14 09:00–09:30 UTC。web-01とdb-01はSSH認証ログと定期処理の選定ログ、win-fin-01はSecurity/Systemの選定イベントを収集します。失敗と成功は別のactionです。パケット、認証基盤全体、実行プロセス一覧はありません。10.20.0.5のsvc.inventoryは定期収集用アカウントです。', 'Window: 2026-10-14 09:00–09:30 UTC. Selected SSH and scheduled-job logs are collected from web-01 and db-01; selected Security/System events come from win-fin-01. Failures and successes have different actions. Packet data, complete identity logs, and process inventories are unavailable. svc.inventory from 10.20.0.5 is the scheduled collection account.'),
+      B('当番への引継ぎ：単独の認証失敗', 'Shift handover: an isolated authentication failure'),
+      B('通知は09:12 UTC、web-01のdeployへの失敗。203.0.113.44は登録された運用接続元ではありませんが、所有者・利用者・地域はこの資料では特定できません。この時間帯のweb-01変更予定はありません。当番は端末担当者への確認と、追加の失敗・成功ログの有無の確認を依頼しています。登録外IPだけで侵害確定とはしません。', 'The notification concerns a failed login for deploy on web-01 at 09:12 UTC. 203.0.113.44 is not a registered operations source; this record does not identify its owner, user, or location. No web-01 change is planned in this window. The shift owner requests verification with the endpoint owner and a check for additional failures or successes. An unregistered IP alone does not establish compromise.')),
+    events: [ssh('tutorial-failure', iso('2026-10-14', '09:12'), '001', false, 'deploy', '203.0.113.44')],
+    steps: [
+      step(tutorialId, 'events', B('1. Threat HuntingのEventsを開く', '1. Open Threat Hunting Events'), B('メニューからThreat Huntingを選び、Events一覧を表示します。中央がWazuh風の調査画面、こちらが教材ガイドです。', 'Choose Threat Hunting and display Events. The central area is the Wazuh-style investigation interface; this panel is the learning guide.')),
+      step(tutorialId, 'range', B('2. 調査期間を適用する', '2. Apply the time window'), B('2026-10-14 09:00–09:30 UTCを確認して期間を適用します。実機でも、時間条件が違うと同じ検索でも結果が変わります。', 'Check and apply 2026-10-14 09:00–09:30 UTC. On a real system, a different time filter changes the results of the same query.')),
+      step(tutorialId, 'search', B('3. web-01の失敗を検索する', '3. Search failures on web-01'), B('agent.name: "web-01" AND data.action: "authentication_failed" を入力して検索します。イベントの検索はDQLです。Agents画面のWQLとは記法が異なります。', 'Search for agent.name: "web-01" AND data.action: "authentication_failed". Events use DQL; the Agents screen uses a different syntax called WQL.')),
+      step(tutorialId, 'detail', B('4. 行を展開して詳細を読む', '4. Expand and inspect the event'), B('09:12の行を展開し、agent.name、rule.level、data.srcip、data.dstuser、full_logを読みます。認証の「失敗」を示す記録であることを確かめてください。', 'Expand the 09:12 row. Read agent.name, rule.level, data.srcip, data.dstuser, and full_log. Confirm that it records a failed authentication.')),
+      step(tutorialId, 'evidence', B('5. イベントを証拠に追加する', '5. Add the event as evidence'), B('この認証失敗イベントを証拠に追加します。背景の定期処理まで選ぶ必要はありません。証拠は後から取り消せます。', 'Add the failed-login event to the evidence list. Routine background jobs are unnecessary. You can remove selected evidence later.')),
+      step(tutorialId, 'document', B('6. 収集範囲と引継ぎを読む', '6. Read scope and handover'), B('「収集範囲とデータの読み方」と「当番への引継ぎ」を開いて読了を記録します。何が記録されていて、何が不明かを確認してください。', 'Read and mark the collection-scope document and shift handover. Identify what is recorded and what remains unknown.')),
+      step(tutorialId, 'report', B('7. 一次報告を提出する', '7. Submit the initial report'), B('判定は未確定、優先度は低、対応は確認、対象はweb-01です。事実欄には時刻・接続元・失敗した利用者・成功は確認できないことを、次の対応には端末担当者への確認を書いて提出します。', 'Choose unknown, low priority, verify, and web-01. State the time, source, target account, and that success is not established. Describe a check with the endpoint owner, then submit.'))
+    ],
+    answer: {
+      verdict: 'unknown', priority: 'low', action: 'verify', target: '001',
+      evidenceGroups: [['tutorial-failure']], documentIds: ['tutorial-scope', 'tutorial-change'],
+      facts: B('09:12 UTC、web-01のdeployに対し203.0.113.44からSSH認証失敗を観測した。単独の失敗であり、この証拠はログイン成功や侵害を示さない。接続元の所有者と期間外の行動は不明。', 'At 09:12 UTC, web-01 recorded a failed SSH login for deploy from 203.0.113.44. This isolated failure does not establish a successful login or compromise. The source owner and activity outside the window are unknown.'),
+      nextStep: B('端末担当者に該当接続の心当たりを確認し、収集範囲を確認したうえで前後の認証ログを追加調査する。繰り返しや成功を認めた場合は優先度を見直す。', 'Ask the endpoint owner about the connection, confirm collection coverage, and inspect surrounding authentication records. Reassess priority if repetition or a successful login is found.'),
+      explanation: B('操作・証拠・文書をひと続きに使うのがこの演習の目的です。失敗アラートから攻撃者や侵害成功を断定せず、確認が必要な状態として引き継ぎます。', 'The goal is to connect interface operations, evidence, and documents. Do not infer an attacker identity or successful compromise from a failed-login alert; hand over the remaining verification needs.')
+    }
+  });
+
+  const authId = 'auth-chain';
+  const auth = assemble({
+    id: authId, stage: 'guided',
+    title: B('ガイド調査：認証失敗の後に何が起きたか', 'Guided: what followed the failed logins?'),
+    brief: B('web-01の認証失敗が増加しています。失敗だけで検索を止めず、同じ接続元・利用者の成功と、その後の権限操作を追って一次報告してください。', 'Failed logins increased on web-01. Follow the source and account into successful authentication and subsequent privileged activity, then submit an initial report.'),
+    objectives: [B('失敗から成功へ検索条件を広げる', 'Broaden a failure search to include successes'), B('接続元・利用者・時刻を照合して時系列を作る', 'Build a timeline using source, account, and time'), B('観測事実と攻撃者に関する推測を分けて引き継ぐ', 'Escalate observed facts separately from attribution assumptions')],
+    timeRange: { from: iso('2026-10-15', '10:00'), to: iso('2026-10-15', '10:40') },
+    hints: [
+      B('agent.name: "web-01" AND data.action: "authentication_failed" で失敗の接続元を見つけます。', 'Use agent.name: "web-01" AND data.action: "authentication_failed" to identify the source.'),
+      B('失敗条件を外し data.srcip: "203.0.113.77" で成功も探します。その後はagent.nameで端末全体のログへ戻ります。', 'Remove the failure condition and search data.srcip: "203.0.113.77" for successes too. Then return to all activity on the endpoint using agent.name.'),
+      B('10:12–10:14の失敗、10:16の成功、10:18のopsによるuseradd実行を証拠にし、作業予定と照合します。sudoログには接続元IPがありません。同じ人物の実行とまでは断定できません。', 'Select failures at 10:12–10:14, the success at 10:16, and the useradd execution by ops at 10:18, then compare approved work. The sudo event has no source IP, so it does not by itself prove the same person performed it.')
+    ],
+    documents: documents(authId,
+      B('対象期間は2026-10-15 10:00–10:40 UTC。web-01はSSH認証ログとsudo実行ログを収集します。sudo記録には実行アカウントとコマンドがあり、元のSSH接続IDはありません。ユーザー作成の最終結果、全プロセス、外部への通信は未収集です。10.20.0.5のsvc.inventoryは定期作業です。', 'Window: 2026-10-15 10:00–10:40 UTC. web-01 provides SSH authentication and sudo execution logs. sudo records an account and command, but no originating SSH session ID. The final account-creation result, complete processes, and outbound traffic are not collected. svc.inventory from 10.20.0.5 is routine activity.'),
+      B('作業予定と運用接続元一覧', 'Approved work and operations sources'),
+      B('この時間帯にweb-01のアカウント追加は承認されていません。運用接続は10.20.0.8の踏み台から行う手順で、203.0.113.77は登録外です。ops担当者はこの時間帯のweb-01への接続を予定していません。db-01のlogrotateと定期インベントリ収集は通常運用です。IPの登録状態は接続元人物を特定する情報ではありません。', 'No account addition is approved on web-01 during this window. Operations should connect through jump host 10.20.0.8; 203.0.113.77 is unregistered. The ops owner has no planned web-01 session in this period. logrotate on db-01 and scheduled inventory collection are routine. The IP registry does not identify the person behind a connection.')),
+    events: [
+      ssh('auth-chain-fail-1', iso('2026-10-15', '10:12'), '001', false, 'ops', '203.0.113.77', 43101),
+      ssh('auth-chain-fail-2', iso('2026-10-15', '10:13'), '001', false, 'ops', '203.0.113.77', 43102),
+      ssh('auth-chain-fail-3', iso('2026-10-15', '10:14'), '001', false, 'ops', '203.0.113.77', 43103),
+      ssh('auth-chain-success', iso('2026-10-15', '10:16'), '001', true, 'ops', '203.0.113.77', 43104),
+      event('auth-chain-sudo', iso('2026-10-15', '10:18'), '001', 100012, 10, 'Training: privileged account-management command', ['wazuhroom', 'sudo', 'account_management'], 'wazuhroom-sudo',
+        { srcuser: 'ops', dstuser: 'root', action: 'privileged_command', command: '/usr/sbin/useradd -m support-temp' },
+        '2026-10-15T10:18:00Z web-01 sudo: ops : TTY=pts/2 ; PWD=/home/ops ; USER=root ; COMMAND=/usr/sbin/useradd -m support-temp')
+    ],
+    steps: standardSteps(authId, 'guided', 'web-01'),
+    answer: {
+      verdict: 'incident', priority: 'high', action: 'escalate', target: '001',
+      evidenceGroups: [['auth-chain-fail-1', 'auth-chain-fail-2', 'auth-chain-fail-3'], ['auth-chain-success'], ['auth-chain-sudo']], documentIds: ['auth-chain-scope', 'auth-chain-change'],
+      facts: B('web-01で203.0.113.77からopsへの失敗を複数観測し、10:16 UTCに同じ接続元・利用者の成功を観測した。10:18にopsがrootとしてuseraddを実行した記録があり、作業予定にない。sudoとSSHを結ぶ接続ID、作成完了、実行人物、外部通信は確認できない。', 'web-01 recorded repeated failures for ops from 203.0.113.77, followed by a success for the same source/account at 10:16 UTC. At 10:18, ops executed useradd as root; this was not approved. No session ID links sudo to SSH, and account creation completion, actor identity, and outbound traffic are unconfirmed.'),
+      nextStep: B('上位担当へ高優先度で引き継ぎ、該当期間の認証・sudo記録を保全する。ops担当者の実施確認、追加アカウントの状態、他端末への同接続元のアクセスを確認し、封じ込めの要否を判断してもらう。', 'Escalate at high priority and preserve the authentication and sudo records. Request confirmation from the ops owner, verify the additional account, inspect the same source across other endpoints, and have the responder decide containment.'),
+      explanation: B('失敗の多さだけでなく、成功と承認外の権限操作が続いていることが引継ぎの根拠です。アカウント名の一致から調査仮説は立てられますが、人物や同一セッションまで確定したとは報告しません。', 'The escalation rests on successful access followed by unapproved privileged activity, not merely the volume of failures. Matching account names support a hypothesis, not a proven actor identity or shared session.')
+    }
+  });
+
+  const adminId = 'approved-admin';
+  const admin = assemble({
+    id: adminId, stage: 'guided',
+    title: B('ガイド調査：管理者追加は承認されているか', 'Guided: was the administrator addition approved?'),
+    brief: B('win-fin-01でローカル管理者グループへの追加が通知されました。誰が、どのアカウントを、いつ追加したかを確認し、作業票の範囲と照合してください。', 'A local Administrators group addition was reported on win-fin-01. Identify the actor, added account, and time, then compare them with the approved change.'),
+    objectives: [B('Windowsイベントの実行者と対象ユーザーを区別する', 'Distinguish the actor from the target in Windows events'), B('作成・グループ追加・削除を同一対象で追う', 'Follow creation, group addition, and removal for one account'), B('重要な変更でも承認と一致する場合の記録を残す', 'Document sensitive activity that matches approved work')],
+    timeRange: { from: iso('2026-10-16', '11:00'), to: iso('2026-10-16', '11:40') },
+    hints: [
+      B('agent.name: "win-fin-01" AND (data.win.system.eventID: "4720" OR data.win.system.eventID: "4732" OR data.win.system.eventID: "4733") を検索します。', 'Search agent.name: "win-fin-01" AND (data.win.system.eventID: "4720" OR data.win.system.eventID: "4732" OR data.win.system.eventID: "4733").'),
+      B('subjectUserNameは操作したアカウントです。4732のtargetUserNameは追加先グループで、memberNameが追加対象です。作業票のmaint-finと照合します。', 'subjectUserName is the actor. In event 4732, targetUserName is the destination group and memberName is the added member. Compare maint-fin with the change ticket.'),
+      B('作成、Administrators追加、グループからの削除の3件を証拠にします。対象・実行者・時間がCHG-204と一致し、削除も確認できるためbenign / low / monitorです。', 'Keep creation, addition to Administrators, and removal from that group. The target, actor, and time match CHG-204, including removal, so the expected result is benign / low / monitor.')
+    ],
+    documents: documents(adminId,
+      B('対象期間は2026-10-16 11:00–11:40 UTC。win-fin-01はSecurityイベント4720（アカウント作成）、4732（ローカルグループ追加）、4733（ローカルグループ削除）を選定収集します。subjectUserNameは実行アカウント、memberNameはグループ操作の対象です。アカウント作成と管理者グループ加入は別の事象です。削除イベントはグループ所属の削除を示し、アカウント自体の削除ではありません。', 'Window: 2026-10-16 11:00–11:40 UTC. Selected win-fin-01 Security events include 4720 (account creation), 4732 (local group addition), and 4733 (local group removal). subjectUserName is the actor; memberName is the affected group member. Account creation and administrator membership are distinct. A group-removal event does not mean the account itself was deleted.'),
+      B('承認済み作業票 CHG-204', 'Approved change CHG-204'),
+      B('対象：win-fin-01。担当アカウント：admin.mori。作業時間：11:10–11:30 UTC。会計ソフト更新のためローカルアカウントmaint-finを作成し、一時的にAdministratorsへ追加してよい。11:30までに同グループから外し、アカウントは通常権限で残す。別端末、別アカウント、時間外の管理者追加はこの承認に含まれない。作業後は記録を保存し継続監視する。', 'Endpoint: win-fin-01. Operator account: admin.mori. Window: 11:10–11:30 UTC. Create local account maint-fin and temporarily add it to Administrators for an accounting-software update. Remove membership by 11:30; retain the account with normal privileges. Other endpoints, accounts, or times are outside this approval. Preserve the record and continue monitoring after completion.')),
+    events: [
+      windows('approved-admin-created', iso('2026-10-16', '11:12'), '4720', { subjectUserName: 'admin.mori', targetUserName: 'maint-fin', targetDomainName: 'WIN-FIN-01' }, 'Training: local account created', 5, ['account_management']),
+      windows('approved-admin-added', iso('2026-10-16', '11:13'), '4732', { subjectUserName: 'admin.mori', memberName: 'WIN-FIN-01\\maint-fin', targetUserName: 'Administrators', targetSid: 'S-1-5-32-544' }, 'Training: member added to local Administrators', 10, ['group_change']),
+      windows('approved-admin-removed', iso('2026-10-16', '11:26'), '4733', { subjectUserName: 'admin.mori', memberName: 'WIN-FIN-01\\maint-fin', targetUserName: 'Administrators', targetSid: 'S-1-5-32-544' }, 'Training: member removed from local Administrators', 5, ['group_change'])
+    ],
+    steps: standardSteps(adminId, 'guided', 'win-fin-01'),
+    answer: {
+      verdict: 'benign', priority: 'low', action: 'monitor', target: '002',
+      evidenceGroups: [['approved-admin-created'], ['approved-admin-added'], ['approved-admin-removed']], documentIds: ['approved-admin-scope', 'approved-admin-change'],
+      facts: B('11:12 UTCにadmin.moriがwin-fin-01へmaint-finを作成、11:13にAdministratorsへ追加し、11:26に同グループから削除した。端末・実行者・対象・作業時間がCHG-204と一致する。アカウント削除やソフト更新成功まではこのログで確認していない。', 'admin.mori created maint-fin on win-fin-01 at 11:12 UTC, added it to Administrators at 11:13, and removed the membership at 11:26. The endpoint, actor, target, and time match CHG-204. These records do not establish account deletion or a successful software update.'),
+      nextStep: B('CHG-204との照合結果と3件の根拠を作業記録へ残し、継続監視する。時間外の再追加や別アカウントへの追加があれば別件として調査する。', 'Record the CHG-204 comparison and three supporting events, then continue monitoring. Investigate any later re-addition or addition of a different account as a new finding.'),
+      explanation: B('管理者追加のlevelは高くても、対象と時間を含む承認内容および戻し操作まで一致しています。アラートが正しい検出であることと、悪意のある事象であることは別です。', 'The administrator-addition event is sensitive, but the full approved scope and removal step match. A correctly detected event is not necessarily malicious activity.')
+    }
+  });
+
+  const serviceId = 'service-persistence';
+  const service = assemble({
+    id: serviceId, stage: 'checklist',
+    title: B('チェックリスト調査：新しいサービスの確認', 'Checklist: investigate a new service'),
+    brief: B('win-fin-01でサービスが新規登録されました。サービス名だけで判断せず、実行パス、起動設定、権限、直前のプロセス記録、承認範囲を確認してください。', 'A new service was registered on win-fin-01. Inspect its executable path, startup setting, account, preceding process record, and approval scope rather than judging its name alone.'),
+    objectives: [B('サービス登録と関連プロセスを時系列で突合する', 'Correlate service registration and related process activity'), B('自動起動・実行権限・パスを読み取る', 'Read startup type, execution account, and path'), B('不審な構成とマルウェア確定を区別して引き継ぐ', 'Escalate suspicious configuration without claiming proven malware')],
+    timeRange: { from: iso('2026-10-17', '12:00'), to: iso('2026-10-17', '12:40') },
+    hints: [
+      B('サービス関連のeventIDと端末で絞り込み、登録に使われた実行パスを確認します。', 'Filter by endpoint and service event ID, then inspect the registered executable path.'),
+      B('7045はサービス登録、4688はプロセス作成です。data.win.system.eventIDを使い両方を見ます。', 'Event 7045 records service registration; 4688 records process creation. Use data.win.system.eventID to inspect both.'),
+      B('12:18のsc.exeによる登録コマンドと12:19のInvoiceUpdater登録が対応します。C:\\ProgramData\\Invoice\\updater.exe、auto start、LocalSystemは作業票の範囲にありません。', 'The sc.exe command at 12:18 corresponds to InvoiceUpdater registration at 12:19. C:\\ProgramData\\Invoice\\updater.exe, auto start, and LocalSystem are outside the approved change.')
+    ],
+    documents: documents(serviceId,
+      B('対象期間は2026-10-17 12:00–12:40 UTC。win-fin-01のSystem 7045とSecurity 4688を選定収集し、4688のコマンドラインも含みます。バイナリ本体、署名検証結果、ネットワーク通信、サービスの実稼働状態はありません。パスやサービス名が不審でもマルウェアの同定には追加調査が必要です。', 'Window: 2026-10-17 12:00–12:40 UTC. Selected win-fin-01 System 7045 and Security 4688 events are available, including 4688 command lines. Binary contents, signature verification, network traffic, and actual service-running status are unavailable. A suspicious name or path alone does not identify malware.'),
+      B('作業予定 CHG-207と構成基準', 'Planned change CHG-207 and baseline'),
+      B('CHG-207はdb-01のバックアップ設定変更のみを承認しています。win-fin-01の新規サービス導入は予定されていません。標準インベントリ製品はC:\\Program Files\\OpsInventory\\配下を使用します。InvoiceUpdaterというサービス、ProgramData\\Invoice配下のバイナリ、LocalSystemでの自動起動は当日の承認一覧にありません。業務端末のため、停止や削除は上位担当の確認を経て行います。', 'CHG-207 approves only a backup-configuration change on db-01. No new service installation is scheduled on win-fin-01. The standard inventory product uses C:\\Program Files\\OpsInventory\\. InvoiceUpdater, a binary under ProgramData\\Invoice, and its automatic LocalSystem startup are absent from today’s approvals. Obtain responder review before stopping or deleting anything on this business endpoint.')),
+    events: [
+      windows('service-persistence-process', iso('2026-10-17', '12:18'), '4688', { subjectUserName: 'fin.user', newProcessName: 'C:\\Windows\\System32\\sc.exe', commandLine: 'sc.exe create InvoiceUpdater binPath= C:\\ProgramData\\Invoice\\updater.exe start= auto obj= LocalSystem', parentProcessName: 'C:\\Windows\\System32\\cmd.exe' }, 'Training: service-creation command observed', 7, ['process_creation']),
+      windows('service-persistence-installed', iso('2026-10-17', '12:19'), '7045', { serviceName: 'InvoiceUpdater', imagePath: 'C:\\ProgramData\\Invoice\\updater.exe', startType: 'auto start', accountName: 'LocalSystem' }, 'Training: new auto-start service registered', 10, ['service_installation'])
+    ],
+    steps: standardSteps(serviceId, 'checklist', 'win-fin-01'),
+    answer: {
+      verdict: 'incident', priority: 'high', action: 'escalate', target: '002',
+      evidenceGroups: [['service-persistence-process'], ['service-persistence-installed']], documentIds: ['service-persistence-scope', 'service-persistence-change'],
+      facts: B('12:18 UTCにwin-fin-01でfin.userによるsc.exeのサービス作成コマンドを観測し、12:19に同名・同パスのInvoiceUpdaterが登録された。ProgramData配下の実行ファイルをLocalSystemで自動起動する設定は承認外。サービスの実行、バイナリの悪性、通信先は未確認。', 'At 12:18 UTC, win-fin-01 recorded a service-creation command by fin.user using sc.exe. At 12:19, InvoiceUpdater was registered with the matching path. Automatic LocalSystem execution from ProgramData is unapproved. Service execution, binary maliciousness, and destinations are unconfirmed.'),
+      nextStep: B('上位担当へ高優先度で引き継ぎ、サービス設定とプロセス記録を保全する。端末担当者に作業有無を確認し、バイナリの取得・署名やハッシュ確認・実行状況の調査を依頼する。停止や隔離の判断も依頼する。', 'Escalate at high priority and preserve service configuration and process records. Confirm work with the endpoint owner, request binary collection, signature/hash checks and execution-state investigation, and ask the responder to decide stopping or isolation.'),
+      explanation: B('名前の印象ではなく、登録コマンドと結果の一致、自動起動権限、承認外の変更が引継ぎ理由です。この記録だけでは実行済みマルウェアや侵入経路は確定できません。', 'Escalation is based on the matching command and registration, automatic privileged execution, and lack of approval. These records alone do not prove executed malware or the entry route.')
+    }
+  });
+
+  const gapId = 'collection-gap';
+  const gap = assemble({
+    id: gapId, stage: 'checklist',
+    title: B('チェックリスト調査：ログが来なくなった端末', 'Checklist: an endpoint stopped sending data'),
+    brief: B('db-01の監視が途絶えています。「アラートがないから安全」と判断せず、最後の観測、エージェント状態、保守予定を突合し、次の確認先を決めてください。', 'Monitoring from db-01 has stopped. Compare the last observation, agent status, and maintenance window, then choose the next owner to contact. A lack of alerts is not evidence of safety.'),
+    objectives: [B('エージェント状態とイベント時刻を突合する', 'Compare agent state with event timestamps'), B('イベントの不在と観測できない状態を区別する', 'Distinguish absence of events from absence of visibility'), B('保守予定を超えた監視欠落の確認依頼を作る', 'Request verification of a collection gap beyond maintenance')],
+    timeRange: { from: iso('2026-10-18', '13:00'), to: iso('2026-10-18', '13:40') },
+    disconnected: { id: '003', at: iso('2026-10-18', '13:16') },
+    hints: [
+      B('Agentsでstatusを確認し、対象端末のEventsへ移動します。状態の絞り込みはWQLの status=disconnected です。', 'Inspect status in Agents, then investigate that endpoint’s events. The WQL status filter is status=disconnected.'),
+      B('db-01の最後の通常ログと、manager側の切断通知は別の観測です。通知の時刻を端末が動いた時刻と混同しないでください。', 'The last normal db-01 log and the manager-side disconnect notification are different observations. Do not mistake notification time for endpoint activity time.'),
+      B('13:15の最終業務ログ、13:16のlastKeepAlive、13:20の切断通知を確認します。保守は13:30までの予定ですが、13:40時点で復旧していません。unknown / medium / verifyが適切です。', 'Check the last business log at 13:15, lastKeepAlive at 13:16, and notification at 13:20. Maintenance should end by 13:30, but recovery is unconfirmed at 13:40. Use unknown / medium / verify.')
+    ],
+    documents: documents(gapId,
+      B('対象期間は2026-10-18 13:00–13:40 UTC。db-01は13:15まで定期処理の選定ログがあり、lastKeepAliveは13:16です。13:20の切断イベントはmanager側の状態を教材用ヘルスコレクターが記録したものです。agentは監視対象db-01を示し、13:20にdb-01自身が送信したログではありません。画面のAgents状態は13:40時点のスナップショットです。切断後の端末上の行動は観測できません。', 'Window: 2026-10-18 13:00–13:40 UTC. Selected routine db-01 logs end at 13:15; lastKeepAlive is 13:16. The 13:20 disconnect event is a manager-side state recorded by a training health collector. Its agent identifies monitored db-01; it is not a log sent by db-01 at 13:20. Agents shows a snapshot at 13:40. Endpoint activity after the collection gap is not visible.'),
+      B('ネットワーク保守票 CHG-209', 'Network maintenance CHG-209'),
+      B('db-01の接続セグメントを13:15–13:30 UTCに保守します。一時的な監視断は想定内ですが、終了時にエージェント再接続を確認する手順です。13:40時点で完了連絡・復旧確認は未着です。ネットワーク担当へ保守完了、端末担当へエージェントサービス状態を確認してください。保守が原因と断定したり、攻撃による停止と断定したりできる資料はありません。', 'The db-01 network segment is under maintenance from 13:15 to 13:30 UTC. A temporary monitoring gap is expected, but agent reconnection must be checked afterward. At 13:40, neither completion notice nor recovery confirmation has arrived. Ask the network owner about completion and the endpoint owner about the agent service. Available records do not prove maintenance or an attack caused the disconnection.')),
+    events: [
+      event('collection-gap-last', iso('2026-10-18', '13:15'), '003', 100001, 3, 'Training: scheduled job completed', ['wazuhroom', 'scheduled_task'], 'wazuhroom-scheduler', { service: 'database-backup', action: 'job_completed', status: 'completed' }, '2026-10-18T13:15:00Z db-01 room-scheduler: job=database-backup result=completed'),
+      event('collection-gap-disconnected', iso('2026-10-18', '13:20'), '003', 100030, 7, 'Training: manager observed agent disconnection', ['wazuhroom', 'agent_status'], 'wazuhroom-agent-health', { status: 'disconnected', lastKeepAlive: iso('2026-10-18', '13:16') }, '2026-10-18T13:20:00Z manager room-health-collector: agent_id=003 agent_name=db-01 status=disconnected lastKeepAlive=2026-10-18T13:16:00.000Z')
+    ],
+    steps: standardSteps(gapId, 'checklist', 'db-01'),
+    answer: {
+      verdict: 'unknown', priority: 'medium', action: 'verify', target: '003',
+      evidenceGroups: [['collection-gap-last'], ['collection-gap-disconnected']], documentIds: ['collection-gap-scope', 'collection-gap-change'],
+      facts: B('db-01の最後の通常ログは13:15 UTC、lastKeepAliveは13:16。managerは13:20に切断を観測し、13:40の状態もdisconnected。13:15–13:30の保守予定はあるが復旧は未確認。欠落期間の端末動作も切断原因も判断できない。', 'The last normal db-01 log is at 13:15 UTC; lastKeepAlive is 13:16. The manager observed disconnection at 13:20, and the 13:40 snapshot still shows disconnected. Maintenance was planned for 13:15–13:30, but recovery is unconfirmed. Endpoint activity during the gap and the cause remain unknown.'),
+      nextStep: B('ネットワーク担当に保守完了と経路復旧、端末担当にエージェント稼働・送信状態を確認する。再接続時刻と欠落範囲を記録し、復旧後に遅延ログや追加の異常を確認する。', 'Ask the network owner to verify maintenance completion and connectivity, and the endpoint owner to check agent operation and delivery. Record the reconnection time and gap, then inspect delayed logs or further anomalies after recovery.'),
+      explanation: B('監視対象の状態を把握できないためunknownです。予定保守は候補となる説明ですが、予定時間を過ぎても復旧していないので中優先度で確認を依頼します。ログがないことを正常と扱わないのが要点です。', 'Use unknown because endpoint visibility is missing. Scheduled maintenance is a possible explanation, but unconfirmed recovery beyond its window warrants medium-priority verification. Missing telemetry must not be treated as normal activity.')
+    }
+  });
+
+  const mixedId = 'mixed-auth';
+  const mixed = assemble({
+    id: mixedId, stage: 'independent',
+    title: B('自力調査：同じ時刻の別々の出来事', 'Independent: simultaneous but separate activity'),
+    brief: B('web-01の認証失敗と、win-fin-01のサービス導入が同じ時間帯に見つかりました。調査対象はwin-fin-01の導入です。両者を同じ攻撃と結びつける根拠があるかを確認し、対象端末について報告してください。', 'SSH failures on web-01 and a service installation on win-fin-01 occurred in the same window. Your assigned finding is the win-fin-01 installation. Determine whether evidence links the two as one attack, then report on the assigned endpoint.'),
+    objectives: [B('複数端末を行き来して必要な証拠を選ぶ', 'Move across endpoints and select relevant evidence'), B('時間の一致だけで因果関係を断定しない', 'Avoid inferring causation from time overlap alone'), B('承認範囲とログを独力で照合して報告する', 'Independently compare logs with approvals and report')],
+    timeRange: { from: iso('2026-10-19', '14:00'), to: iso('2026-10-19', '14:40') },
+    hints: [
+      B('まず報告対象と、比較対象の出来事を分けて整理しましょう。結びつけるには時刻以外の一致が必要です。', 'Separate the assigned finding from the activity you are comparing. A connection needs evidence beyond overlapping time.'),
+      B('win-fin-01の接続元・利用者・サービスのパスを作業票と照合し、その後web-01の失敗の接続元を確認します。', 'Compare the win-fin-01 source, account, and service path with the change, then inspect the source of the web-01 failures.'),
+      B('14:11のadmin.itoのログオン、14:14のOpsInventory登録、web-01のscancheck失敗を選びます。CHG-212と演習通知EX-12でそれぞれ説明でき、同一攻撃を示す証拠はありません。', 'Select admin.ito’s 14:11 logon, the 14:14 OpsInventory registration, and a web-01 scancheck failure. CHG-212 and exercise EX-12 respectively explain them; no evidence establishes a shared attack.')
+    ],
+    documents: documents(mixedId,
+      B('対象期間は2026-10-19 14:00–14:40 UTC。web-01のSSH認証とwin-fin-01のSecurity 4624/System 7045を選定収集しています。4624のlogonType 10はこの教材ではリモート対話ログオンです。7045にはサービス実行アカウントはありますが登録操作を行った人物は記録されていません。直前のログオンと登録を同一人物の操作と確定する接続IDはありません。', 'Window: 2026-10-19 14:00–14:40 UTC. Selected web-01 SSH authentication and win-fin-01 Security 4624/System 7045 events are collected. In this case, logonType 10 represents remote interactive logon. 7045 records the service account but not the person who registered it. There is no session identifier proving that the preceding logon and registration share an actor.'),
+      B('承認済み導入 CHG-212', 'Approved deployment CHG-212'),
+      B('対象：win-fin-01。時間：14:10–14:25 UTC。担当：admin.ito、踏み台10.20.0.8。OpsInventoryをC:\\Program Files\\OpsInventory\\agent.exeからLocalSystemで自動起動する構成を承認済みです。このケースの導入は上記条件と照合し、別端末のアラートは別途根拠を確認します。承認はバイナリの完全性や将来のすべての動作を保証するものではありません。', 'Endpoint: win-fin-01. Window: 14:10–14:25 UTC. Operator: admin.ito through jump host 10.20.0.8. OpsInventory is approved to start automatically as LocalSystem from C:\\Program Files\\OpsInventory\\agent.exe. Compare this installation with those conditions; separately establish the basis of findings on other endpoints. Approval does not guarantee binary integrity or all future activity.'),
+      [document('mixed-auth-exercise', B('承認済み認証テスト EX-12', 'Approved authentication test EX-12'), B('14:00–14:30 UTCにweb-01だけを対象に、203.0.113.99からscancheckへの失敗認証を送る試験を承認しています。試験はログオン成功を目的とせず、Windows端末へのサービス導入も含みません。予定外の成功、別ユーザー、別端末を見つけたら試験担当に確認してください。', 'EX-12 approves failed authentication attempts for scancheck on web-01 only, from 203.0.113.99 between 14:00 and 14:30 UTC. It does not authorize successful access or service installation on Windows endpoints. Confirm unexpected successes, other accounts, or other endpoints with the test owner.'))]),
+    events: [
+      ssh('mixed-auth-failure-1', iso('2026-10-19', '14:10'), '001', false, 'scancheck', '203.0.113.99', 45001),
+      ssh('mixed-auth-failure-2', iso('2026-10-19', '14:12'), '001', false, 'scancheck', '203.0.113.99', 45002),
+      ssh('mixed-auth-failure-3', iso('2026-10-19', '14:14'), '001', false, 'scancheck', '203.0.113.99', 45003),
+      windows('mixed-auth-logon', iso('2026-10-19', '14:11'), '4624', { targetUserName: 'admin.ito', ipAddress: '10.20.0.8', logonType: 10 }, 'Training: Windows authentication succeeded', 3, ['authentication_success']),
+      windows('mixed-auth-service', iso('2026-10-19', '14:14'), '7045', { serviceName: 'OpsInventory', imagePath: 'C:\\Program Files\\OpsInventory\\agent.exe', startType: 'auto start', accountName: 'LocalSystem' }, 'Training: new auto-start service registered', 10, ['service_installation'])
+    ],
+    steps: standardSteps(mixedId, 'independent', 'win-fin-01 / web-01'),
+    answer: {
+      verdict: 'benign', priority: 'low', action: 'monitor', target: '002',
+      evidenceGroups: [['mixed-auth-logon'], ['mixed-auth-service'], ['mixed-auth-failure-1', 'mixed-auth-failure-2', 'mixed-auth-failure-3']], documentIds: ['mixed-auth-scope', 'mixed-auth-change', 'mixed-auth-exercise'],
+      facts: B('win-fin-01では14:11 UTCにadmin.itoが10.20.0.8からログオンし、14:14に承認されたパス・権限・起動設定でOpsInventoryが登録された。CHG-212の範囲と一致する。web-01の203.0.113.99からscancheckへの失敗はEX-12の範囲内。時間の重なり以外に同一攻撃を示す証拠はなく、7045の登録実行者やバイナリの完全性は未確認。', 'On win-fin-01, admin.ito logged on from 10.20.0.8 at 14:11 UTC; OpsInventory was registered at 14:14 with the approved path, account, and startup settings, matching CHG-212. Failures for scancheck from 203.0.113.99 on web-01 fit EX-12. No evidence beyond time overlap links a common attack. The 7045 registration actor and binary integrity remain unconfirmed.'),
+      nextStep: B('win-fin-01の導入を承認作業と一致する事象として記録し継続監視する。比較したSSH失敗とEX-12も記録し、予定外の成功や対象拡大が出たら試験担当へ確認する。', 'Record the win-fin-01 installation as consistent with approved work and continue monitoring. Retain the compared SSH failures and EX-12; contact the test owner if unplanned successes or expanded targets appear.'),
+      explanation: B('別端末・別接続元のアラートが同じ時間に出ても、同じ攻撃とは限りません。両方の承認範囲と記録を確認できることが、根拠のある正常判断につながります。承認があるだけで将来の安全まで保証しない点も残します。', 'Overlapping alerts on different endpoints and sources do not necessarily form one attack. Comparing each observation with its own approval supports a reasoned benign verdict without guaranteeing future safety.')
+    }
+  });
+
+  const fimId = 'fim-change';
+  const hashA = '1a'.repeat(32);
+  const hashB = '2b'.repeat(32);
+  const hashC = '3c'.repeat(32);
+  const hashD = '4d'.repeat(32);
+  const fim = assemble({
+    id: fimId, stage: 'independent',
+    title: B('自力調査：変更されたファイルと承認の境界', 'Independent: file changes and approval boundaries'),
+    brief: B('web-01のファイル変更が通知されました。同じ時間の承認済み作業を見つけても、それですべてを説明できるとは限りません。FIMと認証・コマンド記録を行き来し、重要設定の変更について一次報告してください。', 'File changes were reported on web-01. Approved work in the same window may not explain every change. Move between FIM and authentication/command records and report on the critical configuration change.'),
+    objectives: [B('FIMのパス・変更種別・前後のハッシュを読む', 'Read FIM paths, change type, and before/after hashes'), B('FIMから同じ端末の関連イベントへ調査を広げる', 'Pivot from FIM to related events on the same endpoint'), B('観測された変更と未確認の内容・影響を区別する', 'Separate observed changes from unverified content and impact')],
+    timeRange: { from: iso('2026-10-20', '15:00'), to: iso('2026-10-20', '15:40') },
+    hints: [
+      B('FIMで変更されたパスを作業票の対象と照合してください。端末と時間が合うだけでは承認と一致したことになりません。', 'Compare each changed path in FIM with the ticket. Matching endpoint and time alone does not establish approval.'),
+      B('syscheck.path: "/etc/ssh/sshd_config" を確認し、Eventsで同じweb-01の前後のログを調べます。', 'Inspect syscheck.path: "/etc/ssh/sshd_config", then investigate surrounding web-01 activity in Events.'),
+      B('15:12のcpコマンド、15:13のsshd_config変更、15:14の承認対象index.html変更を証拠にします。変更前後のハッシュは内容変化を示しますが、設定値や変更による侵入可否は示しません。', 'Select the cp command at 15:12, sshd_config change at 15:13, and approved index.html change at 15:14. Different hashes indicate content change, but not the resulting settings or exploitability.')
+    ],
+    documents: documents(fimId,
+      B('対象期間は2026-10-20 15:00–15:40 UTC。web-01の/etc/ssh/sshd_configと/var/www/html/index.htmlをFIM監視しています。syscheck.pathは変更対象、eventは変更種別、sha256_before/afterは前後の内容ハッシュです。内容差分・whodata・変更プロセスIDはありません。sudo記録は別ソースで、FIMの変更者を確定する接続IDもありません。ハッシュ値は教材用です。', 'Window: 2026-10-20 15:00–15:40 UTC. FIM monitors /etc/ssh/sshd_config and /var/www/html/index.html on web-01. syscheck.path identifies the file, event the change type, and sha256_before/after its content hashes. Content diffs, whodata, and modifying process IDs are unavailable. sudo records are a separate source and cannot conclusively attribute a FIM change. Hashes are training values.'),
+      B('Web更新作業票 CHG-215', 'Website update CHG-215'),
+      B('対象：web-01。時間：15:10–15:20 UTC。担当：ops.kai。許可対象は/var/www/html/index.htmlの文面更新のみです。SSHなど認証設定の変更、デーモン再起動は承認に含まれません。重要な認証設定の承認外変更は上位担当へ引き継ぎ、設定内容・業務影響・戻し手順を確認してから対処してください。', 'Endpoint: web-01. Window: 15:10–15:20 UTC. Operator: ops.kai. Only text changes to /var/www/html/index.html are approved. Authentication configuration changes such as SSH settings and daemon restarts are excluded. Escalate unapproved critical authentication changes and verify content, business impact, and rollback procedure before acting.')),
+    events: [
+      ssh('fim-change-logon', iso('2026-10-20', '15:10'), '001', true, 'ops.kai', '10.20.0.8', 46001),
+      event('fim-change-command', iso('2026-10-20', '15:12'), '001', 100013, 7, 'Training: privileged configuration-copy command', ['wazuhroom', 'sudo', 'configuration_change'], 'wazuhroom-sudo', { srcuser: 'ops.kai', dstuser: 'root', action: 'privileged_command', command: '/usr/bin/cp /tmp/sshd_config.new /etc/ssh/sshd_config' }, '2026-10-20T15:12:00Z web-01 sudo: ops.kai : TTY=pts/1 ; PWD=/home/ops.kai ; USER=root ; COMMAND=/usr/bin/cp /tmp/sshd_config.new /etc/ssh/sshd_config'),
+      event('fim-change-config', iso('2026-10-20', '15:13'), '001', 100040, 7, 'Training: monitored file content changed', ['wazuhroom', 'syscheck', 'syscheck_entry_modified'], 'wazuhroom-fim', { action: 'modified', path: '/etc/ssh/sshd_config' }, `File '/etc/ssh/sshd_config' modified. SHA256 before: ${hashA}. SHA256 after: ${hashB}.`, { syscheck: { path: '/etc/ssh/sshd_config', event: 'modified', sha256_before: hashA, sha256_after: hashB } }),
+      event('fim-change-web', iso('2026-10-20', '15:14'), '001', 100040, 7, 'Training: monitored file content changed', ['wazuhroom', 'syscheck', 'syscheck_entry_modified'], 'wazuhroom-fim', { action: 'modified', path: '/var/www/html/index.html' }, `File '/var/www/html/index.html' modified. SHA256 before: ${hashC}. SHA256 after: ${hashD}.`, { syscheck: { path: '/var/www/html/index.html', event: 'modified', sha256_before: hashC, sha256_after: hashD } })
+    ],
+    steps: standardSteps(fimId, 'independent', 'web-01'),
+    answer: {
+      verdict: 'incident', priority: 'high', action: 'escalate', target: '001',
+      evidenceGroups: [['fim-change-command'], ['fim-change-config'], ['fim-change-web']], documentIds: ['fim-change-scope', 'fim-change-change'],
+      facts: B('15:12 UTCにops.kaiによるsshd_configへのcpコマンド、15:13に同ファイルの内容ハッシュ変更をweb-01で観測した。15:14のindex.html変更はCHG-215の対象だが、SSH設定は範囲外。FIMに変更者・内容差分がなく、設定値、反映状態、実行人物、影響は未確認。', 'web-01 recorded a cp command by ops.kai targeting sshd_config at 15:12 UTC and a content-hash change for that file at 15:13. The index.html change at 15:14 is in CHG-215 scope; SSH configuration is not. FIM lacks actor and content-diff information. Settings, activation state, person, and impact remain unconfirmed.'),
+      nextStep: B('認証設定の承認外変更として上位担当へ高優先度で引き継ぎ、FIM・sudo・承認記録を保全する。ops.kai担当者へ実施確認を行い、前後の設定差分と設定反映状況、適切な戻し方を確認してもらう。', 'Escalate the unapproved authentication-configuration change at high priority and preserve FIM, sudo, and approval records. Ask the ops.kai owner to confirm the activity and request a configuration diff, activation check, and appropriate rollback plan.'),
+      explanation: B('同じ時間に承認作業があっても、承認されたファイルはindex.htmlだけです。FIMは「何が変わったか」を調査する入口であり、差分のないハッシュから設定内容や悪意を推測しません。', 'The approved work in this window covers only index.html. FIM provides a lead about what changed; hashes without a content diff cannot establish settings or intent.')
+    }
+  });
+
+  const cases = [tutorial, auth, admin, service, gap, mixed, fim];
+  return { version: 'wazuhroom-1', referenceVersion: '4.14', cases, agents: copy(tutorial.agents) };
+}));
+
+;
+(function (root, factory) {
+  'use strict';
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.WazuhEngine = factory();
+}(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  const UNSAFE = new Set(['__proto__', 'prototype', 'constructor']);
+  const MAX_QUERY = 2000;
+  const STEPS = ['events', 'range', 'search', 'detail', 'evidence', 'document', 'report'];
+  const VIEWS = ['overview', 'agents', 'events', 'fim'];
+  const CHOICES = {
+    verdict: ['', 'incident', 'benign', 'unknown'],
+    priority: ['', 'high', 'medium', 'low'],
+    action: ['', 'escalate', 'monitor', 'verify']
+  };
+  const FIELD_TYPES = Object.freeze(Object.assign(Object.create(null), {
+    id: 'keyword', timestamp: 'keyword',
+    'agent.id': 'keyword', 'agent.name': 'keyword', 'agent.ip': 'keyword',
+    'rule.id': 'keyword', 'rule.level': 'number', 'rule.description': 'text',
+    'rule.groups': 'keyword', 'rule.mitre.id': 'keyword', 'rule.mitre.technique': 'keyword',
+    'decoder.name': 'keyword', full_log: 'text',
+    'syscheck.path': 'keyword', 'syscheck.event': 'keyword',
+    'syscheck.sha256_before': 'keyword', 'syscheck.sha256_after': 'keyword',
+    'data.srcip': 'keyword', 'data.dstip': 'keyword', 'data.srcport': 'number', 'data.dstport': 'number',
+    'data.srcuser': 'keyword', 'data.dstuser': 'keyword', 'data.user': 'keyword',
+    'data.action': 'keyword', 'data.status': 'keyword', 'data.lastKeepAlive': 'keyword',
+    'data.service': 'keyword', 'data.path': 'keyword', 'data.sha256': 'keyword', 'data.command': 'text',
+    'data.win.system.eventID': 'keyword', 'data.win.system.providerName': 'keyword',
+    'data.win.system.computer': 'keyword', 'data.win.system.channel': 'keyword',
+    'data.win.eventdata.subjectUserName': 'keyword', 'data.win.eventdata.targetUserName': 'keyword',
+    'data.win.eventdata.memberName': 'keyword', 'data.win.eventdata.targetSid': 'keyword',
+    'data.win.eventdata.targetDomainName': 'keyword', 'data.win.eventdata.ipAddress': 'keyword',
+    'data.win.eventdata.image': 'keyword', 'data.win.eventdata.commandLine': 'text',
+    'data.win.eventdata.parentImage': 'keyword', 'data.win.eventdata.user': 'keyword',
+    'data.win.eventdata.newProcessName': 'keyword', 'data.win.eventdata.parentProcessName': 'keyword',
+    'data.win.eventdata.serviceName': 'keyword', 'data.win.eventdata.imagePath': 'keyword',
+    'data.win.eventdata.startType': 'keyword', 'data.win.eventdata.accountName': 'keyword',
+    'data.win.eventdata.logonType': 'number', 'data.win.eventdata.processId': 'number', 'data.win.eventdata.action': 'keyword'
+  }));
+  const AGENT_TYPES = Object.freeze({ id: 'keyword', name: 'keyword', ip: 'keyword', status: 'keyword', 'os.name': 'keyword', 'os.platform': 'keyword' });
+
+  function fail(message) { throw new Error(message); }
+  function own(object, key) { return Object.prototype.hasOwnProperty.call(object, key); }
+  function plain(value) { return !!value && typeof value === 'object' && !Array.isArray(value) && [Object.prototype, null].includes(Object.getPrototypeOf(value)); }
+  function get(object, dottedPath) {
+    if (typeof dottedPath !== 'string' || !dottedPath || dottedPath.split('.').some(part => !part || UNSAFE.has(part))) return undefined;
+    let value = object;
+    for (const part of dottedPath.split('.')) {
+      if (value == null || typeof value !== 'object' || !own(value, part)) return undefined;
+      value = value[part];
+    }
+    return value;
+  }
+  function values(value) { return (Array.isArray(value) ? value.flat(2) : [value]).filter(v => v !== null && v !== undefined); }
+  function queryError(message, at) { fail('Query: ' + message + (at === undefined ? '' : ' (position ' + (at + 1) + ')')); }
+  function scalarString(value, label, maximum = MAX_QUERY) {
+    if (typeof value !== 'string' || value.length > maximum) fail('Invalid ' + label + '.');
+    return value;
+  }
+  function tokenize(query) {
+    scalarString(query, 'query');
+    const tokens = [];
+    let i = 0;
+    while (i < query.length) {
+      if (/\s/.test(query[i])) { i++; continue; }
+      const at = i, character = query[i];
+      if ('():'.includes(character)) { tokens.push({ type: character, value: character, at }); i++; }
+      else if ('><=!~'.includes(character)) {
+        let value = query[i++];
+        if (query[i] === '=') value += query[i++];
+        tokens.push({ type: 'operator', value, at });
+      } else if (character === '"') {
+        i++;
+        let value = '', closed = false;
+        while (i < query.length) {
+          const current = query[i++];
+          if (current === '"') { closed = true; break; }
+          if (current === '\\') {
+            const next = query[i++];
+            if (next !== '"' && next !== '\\') queryError('Only \\" and \\\\ escapes are supported inside quotes.', i - 2);
+            value += next;
+          } else value += current;
+        }
+        if (!closed) queryError('Unclosed quoted value.', at);
+        tokens.push({ type: 'string', value, at });
+      } else {
+        let value = '';
+        while (i < query.length && !/[\s():><=!~"]/.test(query[i])) value += query[i++];
+        if (!value || /[\[\]{}?,;|&\\]/.test(value)) queryError('Unsupported character or syntax. Quote literal punctuation.', at);
+        tokens.push({ type: 'word', value, at });
+      }
+      if (tokens.length > 256) queryError('Too many query terms.');
+    }
+    return tokens;
+  }
+  function fieldType(field, mapping) {
+    if (typeof field !== 'string' || !own(mapping, field)) queryError('Unsupported field: ' + field);
+    return mapping[field];
+  }
+  function numberValue(value, at) {
+    if (!/^-?(?:\d+(?:\.\d+)?|\.\d+)$/.test(String(value))) queryError('A numeric value is required.', at);
+    const result = Number(value);
+    if (!Number.isFinite(result)) queryError('A finite numeric value is required.', at);
+    return result;
+  }
+  function wildcardMatches(value, pattern) {
+    // Match only literal characters and *, without compiling user input as a regex.
+    let position = 0, cursor = 0, star = -1, retry = 0;
+    while (position < value.length) {
+      if (pattern[cursor] === '*') { star = cursor++; retry = position; }
+      else if (pattern[cursor] === value[position]) { cursor++; position++; }
+      else if (star !== -1) { cursor = star + 1; position = ++retry; }
+      else return false;
+    }
+    while (pattern[cursor] === '*') cursor++;
+    return cursor === pattern.length;
+  }
+  function dqlPredicate(field, operator, token) {
+    const type = fieldType(field, FIELD_TYPES), expected = token.value;
+    if (operator === ':' && token.type === 'word' && expected === '*') return object => values(get(object, field)).length > 0;
+    if (operator !== ':' && type !== 'number') queryError('Range comparisons are supported only for numeric fields.', token.at);
+    if (type === 'number') {
+      if (token.type === 'string') queryError('Numeric fields require an unquoted number.', token.at);
+      const n = numberValue(expected, token.at);
+      return object => values(get(object, field)).some(value => typeof value === 'number' && Number.isFinite(value) && ({ ':': () => value === n, '>': () => value > n, '>=': () => value >= n, '<': () => value < n, '<=': () => value <= n }[operator])());
+    }
+    if (token.type === 'word' && expected.includes('*')) {
+      if (type !== 'keyword') queryError('Wildcards are supported only for keyword fields.', token.at);
+      return object => values(get(object, field)).some(value => typeof value === 'string' && wildcardMatches(value, expected));
+    }
+    if (type === 'text') {
+      const phrase = expected.toLowerCase();
+      if (!phrase) queryError('A text search value must not be empty.', token.at);
+      return object => values(get(object, field)).some(value => typeof value === 'string' && value.toLowerCase().includes(phrase));
+    }
+    return object => values(get(object, field)).some(value => typeof value === 'string' && value === expected);
+  }
+  function wqlPredicate(field, operator, token) {
+    fieldType(field, AGENT_TYPES);
+    if (token.type === 'word' && token.value.includes('*')) queryError('WQL wildcards are unsupported; use ~ for substring matching.', token.at);
+    const expected = token.value;
+    if (operator === '~') return object => values(get(object, field)).some(value => typeof value === 'string' && value.includes(expected));
+    return object => {
+      const present = values(get(object, field));
+      if (!present.length) return false;
+      if (operator === '!=') return present.every(value => typeof value === 'string' && value !== expected);
+      return present.some(value => typeof value === 'string' && ({ '=': () => value === expected, '>': () => value > expected, '<': () => value < expected }[operator])());
+    };
+  }
+  function parse(query, mode) {
+    const tokens = tokenize(query);
+    if (!tokens.length) return () => true;
+    let index = 0, depth = 0;
+    const peek = () => tokens[index];
+    const isWord = value => peek()?.type === 'word' && (mode === 'wql' ? peek().value === value.toLowerCase() : peek().value.toUpperCase() === value);
+    const accept = type => { if (peek()?.type !== type) return null; return tokens[index++]; };
+    function primary() {
+      if (++depth > 24) queryError('Query nesting is too deep.');
+      let result;
+      if (accept('(')) {
+        result = or();
+        if (!accept(')')) queryError('Expected a closing parenthesis.', peek()?.at);
+      } else {
+        const field = accept('word');
+        if (!field) queryError('Expected a field name.', peek()?.at);
+        const operator = mode === 'dql' ? (accept(':') || accept('operator')) : accept('operator');
+        const valid = mode === 'dql' ? [':', '>', '>=', '<', '<='] : ['=', '!=', '~', '>', '<'];
+        if (!operator || !valid.includes(operator.value)) queryError('Unsupported or missing ' + mode.toUpperCase() + ' operator.', operator?.at ?? peek()?.at);
+        const value = peek();
+        if (!value || !['word', 'string'].includes(value.type) || (value.type === 'word' && /^(AND|OR|NOT)$/i.test(value.value))) queryError('Expected a value. Quote words such as AND.', value?.at);
+        index++;
+        result = mode === 'dql' ? dqlPredicate(field.value, operator.value, value) : wqlPredicate(field.value, operator.value, value);
+      }
+      depth--;
+      return result;
+    }
+    function unary() {
+      if (mode === 'dql' && isWord('NOT')) {
+        index++;
+        if (++depth > 24) queryError('Query nesting is too deep.');
+        const predicate = unary();
+        depth--;
+        return object => !predicate(object);
+      }
+      return primary();
+    }
+    function and() {
+      let result = unary();
+      while (isWord('AND')) { index++; const left = result, right = unary(); result = object => left(object) && right(object); }
+      return result;
+    }
+    function or() {
+      let result = and();
+      while (isWord('OR')) { index++; const left = result, right = and(); result = object => left(object) || right(object); }
+      return result;
+    }
+    const predicate = or();
+    if (index !== tokens.length) queryError('Unexpected token. Use an explicit AND or OR between conditions.', peek().at);
+    return predicate;
+  }
+  function dateValue(value, label) {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(value)) fail('Invalid ' + label + '; use an ISO UTC timestamp.');
+    const milliseconds = Date.parse(value);
+    if (!Number.isFinite(milliseconds) || new Date(milliseconds).toISOString().slice(0, 19) !== value.slice(0, 19)) fail('Invalid ' + label + '.');
+    return milliseconds;
+  }
+  function timeBounds(from, to) {
+    const lower = from === '' || from === undefined ? -Infinity : dateValue(from, 'start time');
+    const upper = to === '' || to === undefined ? Infinity : dateValue(to, 'end time');
+    if (lower > upper) fail('The start time must be before or equal to the end time.');
+    return [lower, upper];
+  }
+  function filterShape(filter) {
+    if (!plain(filter) || Object.keys(filter).some(key => !['field', 'value', 'negate', 'disabled'].includes(key))) fail('Invalid filter.');
+    const type = fieldType(filter.field, FIELD_TYPES);
+    if (typeof filter.value !== (type === 'number' ? 'number' : 'string') || (type === 'number' && !Number.isFinite(filter.value)) || (type !== 'number' && filter.value.length > 2000)) fail('Invalid typed filter value.');
+    if ((own(filter, 'negate') && typeof filter.negate !== 'boolean') || (own(filter, 'disabled') && typeof filter.disabled !== 'boolean')) fail('Invalid filter flag.');
+    return { field: filter.field, value: filter.value, negate: filter.negate ?? false, disabled: filter.disabled ?? false };
+  }
+  function filterPredicate(filter) {
+    const parsed = filterShape(filter);
+    return object => {
+      if (parsed.disabled) return true;
+      const matches = values(get(object, parsed.field)).some(value => value === parsed.value);
+      return parsed.negate ? !matches : matches;
+    };
+  }
+  function search(events, options = {}) {
+    if (!Array.isArray(events) || !plain(options)) fail('Invalid search input.');
+    if (Object.keys(options).some(key => !['query', 'filters', 'from', 'to', 'module'].includes(key))) fail('Unsupported search option.');
+    const { query = '', filters = [], from = '', to = '', module = 'events' } = options;
+    if (!['events', 'fim'].includes(module)) fail('Unsupported event module.');
+    if (!Array.isArray(filters) || filters.length > 30) fail('Invalid filters.');
+    const predicate = parse(query, 'dql'), filterTests = filters.map(filterPredicate), [lower, upper] = timeBounds(from, to);
+    return events.filter(event => {
+      const at = Date.parse(event.timestamp);
+      return Number.isFinite(at) && at >= lower && at <= upper && (module !== 'fim' || (plain(event.syscheck) && typeof event.syscheck.path === 'string')) && predicate(event) && filterTests.every(test => test(event));
+    });
+  }
+  function searchAgents(agents, query = '') {
+    if (!Array.isArray(agents)) fail('Invalid agents.');
+    const predicate = parse(query, 'wql');
+    return agents.filter(predicate);
+  }
+  function createProgress(content) {
+    if (!plain(content) || !Array.isArray(content.cases) || !content.cases.length) fail('Invalid content.');
+    const records = {};
+    for (const item of content.cases) {
+      if (UNSAFE.has(item.id) || own(records, item.id)) fail('Invalid or duplicate case ID.');
+      records[item.id] = { query: '', filters: [], from: item.timeRange.from, to: item.timeRange.to, view: 'overview', evidence: [], documents: [], operations: [], report: { verdict: '', priority: '', action: '', target: '', facts: '', nextStep: '' }, completed: false, feedback: null, hint: 0, expanded: null };
+    }
+    return { format: 'wazuhroom-save', version: 1, dataset: content.version, language: 'ja', activeCaseId: content.cases[0].id, records };
+  }
+  function assess(caseData, record) {
+    const answer = caseData.answer, report = record?.report || {}, evidence = Array.isArray(record?.evidence) ? record.evidence : [], documents = Array.isArray(record?.documents) ? record.documents : [], operations = Array.isArray(record?.operations) ? record.operations : [];
+    const eventIds = new Set(caseData.events.map(item => item.id)), selected = new Set(evidence);
+    const validEvidence = selected.size === evidence.length && evidence.every(id => eventIds.has(id));
+    const groups = answer.evidenceGroups || [], limit = groups.length + 2;
+    const prose = value => typeof value === 'string' && value.trim().length >= 10 && value.length <= 4000;
+    const checks = [
+      { key: 'verdict', passed: report.verdict === answer.verdict },
+      { key: 'priority', passed: report.priority === answer.priority },
+      { key: 'action', passed: report.action === answer.action },
+      { key: 'target', passed: report.target === answer.target },
+      { key: 'evidence', passed: validEvidence && groups.length > 0 && groups.every(group => group.length > 0 && group.some(id => selected.has(id))) },
+      { key: 'evidenceLimit', passed: validEvidence && evidence.length > 0 && evidence.length <= limit },
+      { key: 'documents', passed: (answer.documentIds || []).every(id => documents.includes(id)) },
+      { key: 'operations', passed: [...new Set(caseData.steps.map(step => step.kind).filter(kind => kind !== 'report'))].every(kind => operations.includes(kind)) },
+      { key: 'facts', passed: prose(report.facts) },
+      { key: 'nextStep', passed: prose(report.nextStep) }
+    ];
+    return { passed: checks.every(check => check.passed), checks, score: checks.filter(check => check.passed).length * 10 };
+  }
+  function safeTree(value, seen = new Set(), depth = 0, budget = { count: 0 }) {
+    if (++budget.count > 100000 || depth > 20) fail('Save data is too large or deeply nested.');
+    if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
+    if (typeof value === 'number') { if (!Number.isFinite(value)) fail('Invalid number in save.'); return; }
+    if (typeof value !== 'object' || (!Array.isArray(value) && !plain(value)) || seen.has(value)) fail('Invalid object in save.');
+    seen.add(value);
+    for (const key of Object.keys(value)) {
+      if (UNSAFE.has(key)) fail('Unsafe property in save.');
+      safeTree(value[key], seen, depth + 1, budget);
+    }
+    seen.delete(value);
+  }
+  function exactKeys(object, allowed, required, label) {
+    if (!plain(object) || Object.keys(object).some(key => !allowed.includes(key)) || required.some(key => !own(object, key))) fail('Invalid ' + label + ' fields.');
+  }
+  function idList(value, allowed, maximum, label) {
+    if (!Array.isArray(value) || value.length > maximum || value.some(id => typeof id !== 'string' || !allowed.has(id)) || new Set(value).size !== value.length) fail('Invalid ' + label + '.');
+    return value.slice();
+  }
+  function validateRecord(raw, item, snapshot = false) {
+    const required = ['query', 'filters', 'from', 'to', 'view', 'evidence', 'documents', 'operations', 'report', 'completed', 'feedback', 'hint', 'expanded'];
+    exactKeys(raw, [...required, 'completion'], required, 'record');
+    if (snapshot && own(raw, 'completion') && raw.completion !== null) fail('Nested completion snapshots are invalid.');
+    scalarString(raw.query, 'query');
+    if (!Array.isArray(raw.filters) || raw.filters.length > 30) fail('Invalid saved filters.');
+    const filters = raw.filters.map(filterShape);
+    // A saved search must be executable: invalid or unsupported queries are never imported silently.
+    search([], { query: raw.query, filters, from: raw.from, to: raw.to, module: 'events' });
+    if (!VIEWS.includes(raw.view) || typeof raw.completed !== 'boolean' || !Number.isInteger(raw.hint) || raw.hint < 0 || raw.hint > 3) fail('Invalid saved view, completion or hint.');
+    const eventIds = new Set(item.events.map(event => event.id)), documentIds = new Set(item.documents.map(document => document.id)), agentIds = new Set(item.agents.map(agent => agent.id));
+    if (raw.expanded !== null && !eventIds.has(raw.expanded)) fail('Invalid expanded event.');
+    const reportKeys = ['verdict', 'priority', 'action', 'target', 'facts', 'nextStep'];
+    exactKeys(raw.report, reportKeys, reportKeys, 'report');
+    for (const key of Object.keys(CHOICES)) if (!CHOICES[key].includes(raw.report[key])) fail('Invalid report choice.');
+    if (raw.report.target !== '' && !agentIds.has(raw.report.target)) fail('Invalid report target.');
+    scalarString(raw.report.facts, 'facts', 4000);
+    scalarString(raw.report.nextStep, 'next step', 4000);
+    if (raw.feedback !== null && !plain(raw.feedback)) fail('Invalid feedback.');
+    const result = {
+      query: raw.query, filters, from: raw.from, to: raw.to, view: raw.view,
+      evidence: idList(raw.evidence, eventIds, eventIds.size, 'evidence'),
+      documents: idList(raw.documents, documentIds, documentIds.size, 'documents'),
+      operations: idList(raw.operations, new Set(STEPS), STEPS.length, 'operations'),
+      report: { ...raw.report }, completed: false, feedback: null, hint: raw.hint, expanded: raw.expanded
+    };
+    if (!snapshot && raw.completion !== undefined && raw.completion !== null) {
+      const completion = validateRecord(raw.completion, item, true);
+      if (!assess(item, completion).passed) fail('Completion snapshot does not pass assessment.');
+      completion.completed = true;
+      completion.feedback = assess(item, completion);
+      result.completion = completion;
+      result.completed = true;
+    } else if (raw.completed) {
+      if (!assess(item, result).passed) fail('Completed record does not pass assessment.');
+      result.completed = true;
+      if (!snapshot) result.completion = JSON.parse(JSON.stringify(result));
+    }
+    if (raw.feedback !== null) result.feedback = assess(item, result);
+    return result;
+  }
+  function validateProgress(input, content) {
+    safeTree(input);
+    const keys = ['format', 'version', 'dataset', 'language', 'activeCaseId', 'records'];
+    exactKeys(input, keys, keys, 'save');
+    if (input.format !== 'wazuhroom-save' || input.version !== 1 || input.dataset !== content.version) fail('Unsupported save format or dataset version.');
+    if (!['ja', 'en'].includes(input.language)) fail('Invalid saved language.');
+    const caseIds = content.cases.map(item => item.id);
+    if (!caseIds.includes(input.activeCaseId)) fail('Invalid active case.');
+    exactKeys(input.records, caseIds, caseIds, 'records');
+    const records = {};
+    for (const item of content.cases) records[item.id] = validateRecord(input.records[item.id], item);
+    return { format: 'wazuhroom-save', version: 1, dataset: content.version, language: input.language, activeCaseId: input.activeCaseId, records };
+  }
+  return Object.freeze({ get, search, searchAgents, createProgress, assess, validateProgress, FIELD_TYPES, AGENT_TYPES });
+}));
+
+;
+(function () {
+  'use strict';
+  const C = window.WazuhContent, E = window.WazuhEngine;
+  const STORE = 'wazuhroom.progress.v1';
+  const app = document.getElementById('app'), dialog = document.getElementById('dialog');
+  const UI = {
+    concept:['WazuhをつかったSOC業務の基本フローと操作方法を体験するコンテンツ','Experience the basic SOC workflow and operations using Wazuh'],
+    intro:['アラートを確認し、ログを調べ、根拠をもとに判断して報告する。Wazuhに近い画面で、SOCの一次調査を一つずつ練習します。','Review alerts, investigate logs, make evidence-based decisions, and report your findings. Practice initial SOC investigations in a Wazuh-style workspace.'],
+    simulation:['非公式の学習シミュレーター','Unofficial learning simulator'],
+    offline:['ブラウザだけ・オフライン対応','Browser only · Works offline'],
+    home:['演習一覧','Exercises'],save:['保存','Save'],load:['読込','Load'],help:['使い方','Help'],close:['閉じる','Close'],cancel:['キャンセル','Cancel'],apply:['適用','Apply'],clear:['解除','Clear'],start:['始める','Start'],resume:['続きから','Continue'],review:['復習する','Review'],completed:['完了','Complete'],notStarted:['未開始','Not started'],progress:['学習の進み具合','Your progress'],
+    tutorial:['操作チュートリアル','Interface tutorial'],guided:['ガイド付き調査','Guided investigation'],checklist:['チェックリスト調査','Checklist investigation'],independent:['自力で調査','Independent investigation'],
+    workflow:['SOCの基本フロー','The SOC workflow'],triage:['アラート確認','Triage'],investigate:['調査','Investigate'],decide:['判断','Decide'],report:['報告','Report'],
+    homeNote:['全7件・時間制限なし。どの演習からでも始められます。ヒントによる減点はありません。','7 exercises, no time limits. Start anywhere. Hints do not reduce your score.'],
+    limit:['Wazuh 4.14系の画面・用語を参考にした独自教材です。実際のWazuhや端末には接続しません。画面と検索は学習用の範囲に限定しており、実機との完全な一致は保証しません。','An original educational simulation based on Wazuh 4.14 interface concepts. It does not connect to Wazuh or real endpoints. Screens and search support a teaching subset, not complete product compatibility.'],
+    synthetic:['合成ログ・教材用カスタムルール・演習時刻はUTC','Synthetic logs · Custom teaching rules · Exercise time: UTC'],
+    optional:['roomシリーズの任意教材です。メインの学習順には含めません。','An optional room-series project, outside the main learning path.'],
+    overview:['概要','Overview'],agents:['エージェント','Agents'],threat:['脅威の調査','Threat hunting'],fim:['ファイル変更の調査','File changes'],
+    exercise:['演習','Exercise'],training:['学習パネル','Learning panel'],task:['依頼','Task'],refs:['資料','References'],evidence:['証拠','Evidence'],
+    events:['イベント','Events'],hits:['件のイベント','events'],allEvents:['演習内の全イベント','All exercise events'],highAlerts:['レベル10以上','Level 10 or above'],activeAgents:['接続中のエージェント','Active agents'],
+    overviewSub:['演習データの状況を確認し、調査する画面へ進みます。','Review this exercise environment, then open an investigation view.'],
+    eventsSub:['期間・検索式・フィルターを組み合わせて調べます。','Investigate using the time range, search query, and filters.'],
+    agentsSub:['状態と最終通信を確認し、その端末のイベントへ進みます。','Check status and last keep-alive, then investigate the endpoint events.'],
+    fimSub:['監視対象ファイルの変更イベント。すべてのファイルを監視しているわけではありません。','Change events for monitored files. Not every file is monitored.'],
+    from:['開始（UTC）','From (UTC)'],to:['終了（UTC）','To (UTC)'],fullRange:['演習の全期間','Full exercise range'],search:['検索','Search'],searchHelp:['検索の対応範囲','Search reference'],addFilter:['フィルターを追加','Add filter'],removeFilters:['条件をすべて解除','Clear all conditions'],
+    field:['フィールド','Field'],value:['値','Value'],exclude:['除外する','Exclude matches'],filter:['絞り込む','Filter for value'],filterOut:['除外する','Filter out value'],toggle:['有効・無効の切替','Enable or disable'],remove:['削除','Remove'],
+    time:['時刻','Time'],agent:['エージェント','Agent'],description:['説明','Description'],level:['レベル','Level'],details:['詳細','Details'],original:['元のログ','Original log'],addEvidence:['証拠に追加','Add evidence'],added:['証拠に登録済み','Evidence added'],
+    columns:['表示する列','Displayed columns'],prev:['前へ','Previous'],next:['次へ','Next'],empty:['該当するイベントはありません。期間や条件を確認してください。','No matching events. Check the time range and filters.'],
+    agentEmpty:['一致するエージェントはありません。検索条件を確認してください。','No matching agents. Check your query.'],
+    searchError:['検索式を適用できません。フィールド名、演算子、引用符、対応構文を確認してください。直前の適用済み結果を表示しています。','Unable to apply the query. Check field names, operators, quotes, and supported syntax. The previous results are preserved.'],
+    rangeError:['正しいUTCの開始・終了日時を指定してください。開始は終了より前にします。','Enter valid UTC start and end times. Start must be before end.'],
+    chart:['時間ごとのイベント数','Events over time'],chartHint:['棒を押すとその期間に絞ります。','Select a bar to narrow the time range.'],
+    status:['状態','Status'],os:['OS','Operating system'],keepAlive:['最終通信（UTC）','Last keep-alive (UTC)'],viewEvents:['イベントを調べる','Investigate events'],
+    learnNext:['次の操作','Next operation'],goStep:['操作する場所へ','Go to this control'],checked:['実施済み','Performed'],notChecked:['未実施','Not performed'],
+    checkNote:['チェックは操作の実施を表します。判断の正しさは報告提出時に確認します。','Checks record performed operations. Decisions are checked when you submit the report.'],
+    hint:['ヒント','Hint'],nextHint:['次のヒント','Next hint'],noHints:['ヒントはここまでです。資料と証拠を見直しましょう。','No more hints. Review the references and evidence.'],
+    refNote:['資料を開き、収集範囲や承認内容をログと照合してください。','Open references and compare collection coverage and approved changes with the logs.'],
+    read:['確認済み','Opened'],unread:['未確認','Not opened'],evidenceNote:['必要なイベントを絞って残します。資料は「資料」タブで確認します。','Keep a focused selection of events. Review documents in the References tab.'],
+    noEvidence:['まだ証拠がありません。イベントの詳細を開いて追加できます。','No evidence yet. Expand an event to add it.'],
+    verdict:['判定','Verdict'],priority:['優先度','Priority'],action:['次の対応','Next action'],target:['主な対象','Primary target'],select:['選択してください','Choose an option'],
+    incident:['インシデント','Incident'],benign:['正当な活動','Benign activity'],unknown:['判断保留','Insufficient evidence'],high:['高','High'],medium:['中','Medium'],low:['低','Low'],escalate:['担当へエスカレーション','Escalate to the responsible team'],monitor:['監視を継続','Continue monitoring'],verify:['追加確認を依頼','Request verification'],
+    facts:['確認した事実と根拠','Observed facts and evidence'],nextStep:['未確認事項・引継ぎ先・次の確認','Unknowns, recipient, and next checks'],factsPlaceholder:['対象・時刻・証拠IDを挙げて、分かったことを記録します。','Record findings with the target, time, and evidence IDs.'],nextPlaceholder:['分からないこと、誰に何を確認してもらうかを書きます。','State unknowns and who should check what next.'],
+    structural:['自由記述は10〜4000文字で、文字数のみ確認します。意味・正確さは自動採点しません。提出後に報告例と比較してください。','Free text requires 10–4,000 characters and is checked for length only, not meaning or accuracy. Compare your writing with the example after submission.'],
+    submit:['調査報告を提出','Submit investigation report'],passed:['調査を完了しました','Investigation complete'],tryAgain:['確認が必要な項目があります','Some items need another look'],
+    evidenceLimit:['証拠を絞る','Focused evidence selection'],documents:['必要な資料の確認','Required references'],operations:['調査操作の実施','Investigation operations'],
+    result:['提出結果','Submission result'],model:['報告例と振り返り','Example report and reflection'],showModel:['報告例を開く','Open example report'],modelNote:['自分の報告と比べ、事実・推測・未確認事項を区別してください。','Compare your report, distinguishing facts, inferences, and unknowns.'],exportReport:['報告を書き出す','Export report'],nextCase:['次の演習へ','Next exercise'],
+    saved:['進捗を保存しました。','Progress exported.'],autosaveFail:['自動保存を利用できません。「保存」で進捗ファイルを残してください。','Auto-save is unavailable. Use Save to export your progress.'],
+    savedBad:['保存済みデータを読み込めませんでした。元のデータは変更していません。「読込」でバックアップを復元できます。','Saved data could not be loaded. It was left unchanged. Use Load to restore a backup.'],
+    loaded:['進捗を読み込みました。','Progress imported.'],invalidFile:['この進捗ファイルは読み込めません。Wazuhroomの有効な保存ファイルを選んでください。現在の進捗は変更していません。','Unable to import this file. Choose a valid Wazuhroom save. Current progress is unchanged.'],
+    importTitle:['進捗を置き換えますか','Replace current progress?'],importNote:['現在の進捗をバックアップしてから、選んだファイルに置き換えます。ブラウザのダウンロード許可を確認してください。','Export a backup of your current progress, then replace it with the selected file. Check your browser download permissions.'],backup:['現在の進捗をバックアップ','Back up current progress'],replace:['読み込んで置き換える','Import and replace'],
+    helpIntro:['まず操作チュートリアルから始めます。左のメニューで画面を移動し、右の学習パネルで依頼・資料・報告を確認します。','Start with the interface tutorial. Use the left menu for investigation views and the right learning panel for the task, references, and report.'],
+    helpSave:['言語変更や演習の移動で進捗は失われません。保存先が変わる場合は「保存」でJSONを出力し、「読込」で復元します。ローカルHTMLの自動保存はブラウザにより異なります。','Switching language or exercises preserves progress. Export JSON with Save and restore with Load when changing location or browser. Auto-save for local HTML varies by browser.'],
+    helpScope:['この教材の目的は一次調査の操作と考え方です。Wazuhの導入、エージェント登録、任意ルールの評価、実端末への対応は実行しません。','This lab teaches initial investigation operations and reasoning. It does not install Wazuh, enroll agents, evaluate arbitrary rules, or perform actions on real endpoints.'],
+    helpDql:['イベント検索はフィールド指定のDQLサブセットです。:、数値比較、AND / OR / NOT、括弧、存在確認、キーワードの * に対応します。自由文検索・Lucene・正規表現・入れ子構文は未対応です。text型は学習用の部分一致で、実機の全文解析とは異なります。','Event search supports a field-based DQL subset: :, numeric comparisons, AND / OR / NOT, parentheses, existence, and keyword wildcards *. Free-text, Lucene, regex, and nested syntax are not supported. Text fields use teaching substring matching, not the real full-text analyzer.'],
+    helpWql:['エージェント検索はWQLの =、!=、~、>、<、and / or、括弧に対応します。and / or は小文字です。ワイルドカードは使いません。','Agent search supports WQL =, !=, ~, >, <, and / or, and parentheses. Use lowercase and / or. Wildcards are not supported.'],
+    localTime:['演習のログ時刻は固定です。「全期間」で教材の時間帯へ戻れます。端末の現在時刻とは連動しません。','Exercise timestamps are fixed. Full exercise range restores the scenario window; it does not follow your current device time.'],
+    noTimer:['時間制限なし','No time limit'],completedAll:['全演習を完了しました。別の条件でも検索し、調査の手順を復習できます。','All exercises complete. Try different searches and revisit the investigation workflow.'],
+    fieldCount:['フィールド一覧','Available fields'],openReport:['報告をまとめる','Prepare report'],agentScope:['このエージェントで絞り込みました。','Filtered by this agent.'],evidenceMax:['証拠は必要なものに絞ってください。','Keep evidence focused on what is needed.'],download:['オフライン用HTML','Offline HTML'],source:['ソース・説明','Source & guide'],utc:['すべてUTC','All times UTC']
+  };
+  let progress = E.createProgress(C), home = true, tab = 'task', page = 0, agentQuery = '', agentDraft = '', queryDraft = '', fromDraft = '', toDraft = '', searchError = '', modelOpen = false, columnsOpen = false;
+  const detailOpen = {};
+  let cols = ['timestamp','agent.name','rule.description','rule.level','rule.id'];
+  let noticeTimer, pendingImport = null, importBackedUp = false, startupWarning = '', storageBlocked = false;
+  const esc = value => String(value == null ? '' : value).replace(/[&<>"']/g, x => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
+  const t = key => UI[key] ? UI[key][progress.language === 'ja' ? 0 : 1] : key;
+  const tx = value => typeof value === 'string' ? value : value?.[progress.language] || '';
+  const active = () => C.cases.find(x => x.id === progress.activeCaseId);
+  const record = () => progress.records[progress.activeCaseId];
+  const clone = value => JSON.parse(JSON.stringify(value));
+  const time = value => value.replace('T',' ').replace(/\.\d{3}Z$/,'').replace(/Z$/,'');
+  const dt = value => value.slice(0,19);
+  const btn = (action, label, cls='', attrs='') => `<button type="button" class="${cls}" data-action="${action}" ${attrs}>${esc(label)}</button>`;
+  const completedCount = () => C.cases.filter(c => progress.records[c.id].completed).length;
+  function saveLocal() {
+    if (storageBlocked) return;
+    try { localStorage.setItem(STORE, JSON.stringify(progress)); }
+    catch (_) { storageBlocked = true; notify(t('autosaveFail')); }
+  }
+  try {
+    const saved = localStorage.getItem(STORE);
+    if (saved) progress = E.validateProgress(JSON.parse(saved), C);
+    else progress.language = (navigator.language || 'en').toLowerCase().startsWith('ja') ? 'ja' : 'en';
+  } catch (_) { startupWarning = 'savedBad'; storageBlocked = true; progress.language = (navigator.language || '').startsWith('ja') ? 'ja' : 'en'; }
+  queryDraft = record().query;fromDraft=dt(record().from);toDraft=dt(record().to);
+  function notify(message) { const el=document.getElementById('notice');el.textContent=message;el.classList.add('show');clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>el.classList.remove('show'),6000); }
+  function op(kind) { const r=record(); if (!r.operations.includes(kind)) r.operations.push(kind); }
+  function syncDraft() {
+    const q=document.getElementById('event-query'); if(q) queryDraft=q.value;
+    const a=document.getElementById('agent-query'); if(a) agentDraft=a.value;
+    const f=document.getElementById('range-from'),z=document.getElementById('range-to');if(f)fromDraft=f.value;if(z)toDraft=z.value;
+    document.querySelectorAll('[data-detail-key]').forEach(el=>{detailOpen[el.dataset.detailKey]=el.open;});
+    document.querySelectorAll('[data-report]').forEach(el=>{record().report[el.dataset.report]=el.value;});
+  }
+  function header() {
+    return `<header class="topbar">${btn('home','', 'brand', 'aria-label="Wazuhroom"').replace('</button>', '<span class="brand-icon" aria-hidden="true">W</span><span><strong>Wazuhroom</strong><br><span class="version">v'+esc(document.body.dataset.version)+' · '+esc(t('simulation'))+'</span></span></button>')}<div class="top-actions"><label for="language" class="sr-only" hidden>Language</label><select id="language" aria-label="Language"><option value="ja" ${progress.language==='ja'?'selected':''}>日本語</option><option value="en" ${progress.language==='en'?'selected':''}>English</option></select>${btn('save',t('save'),'small')}${btn('load',t('load'),'small')}${btn('help',t('help'),'small')}</div></header>`;
+  }
+  function renderHome() {
+    const count=completedCount();
+    return `<main class="home" id="main" tabindex="-1"><section class="hero"><div><div class="eyebrow">WAZUHROOM / SOC WORKFLOW LAB</div><h1>${esc(t('concept'))}</h1><p>${esc(t('intro'))}</p><div class="flow"><span class="tag blue">${esc(t('offline'))}</span><span class="tag">日本語 / English</span><span class="tag">${esc(t('noTimer'))}</span></div></div><aside class="hero-note"><strong>${esc(t('workflow'))}</strong><div class="flow"><span>01 ${esc(t('triage'))}</span>→<span>02 ${esc(t('investigate'))}</span>→<span>03 ${esc(t('decide'))}</span>→<span>04 ${esc(t('report'))}</span></div></aside></section><div class="section-line"><h2>${esc(t('exercise'))}</h2><span class="muted">${esc(t('progress'))} <strong>${count} / ${C.cases.length}</strong></span></div><div class="progressline" role="progressbar" aria-label="${esc(t('progress'))}" aria-valuenow="${count}" aria-valuemax="${C.cases.length}" aria-valuemin="0"><i style="width:${count/C.cases.length*100}%"></i></div><p class="footer-note">${esc(t('homeNote'))}</p>${count===C.cases.length?`<div class="success">${esc(t('completedAll'))}</div>`:''}<div class="case-grid">${C.cases.map((c,i)=>{const r=progress.records[c.id],begun=r.operations.length>0;return `<article class="case-card ${c.stage==='tutorial'?'tutorial':''}"><div><div class="card-meta"><span class="tag ${c.stage==='tutorial'?'blue':''}">${String(i).padStart(2,'0')} · ${esc(t(c.stage))}</span>${r.completed?`<span class="tag green">✓ ${esc(t('completed'))}</span>`:''}</div><h3>${esc(tx(c.title))}</h3><p>${esc(tx(c.brief))}</p></div>${btn('case',t(r.completed?'review':begun?'resume':'start'),'primary',`data-id="${esc(c.id)}"`)}</article>`;}).join('')}</div><footer class="home-footer"><p>${esc(t('limit'))}</p><p>${esc(t('optional'))}</p><a href="https://github.com/retiacole/wazuhroom" target="_blank" rel="noopener">${esc(t('source'))}</a><a href="https://github.com/retiacole/wazuhroom/blob/main/wazuhroom.html" target="_blank" rel="noopener">${esc(t('download'))}</a><p class="footer-note">Created with AI assistance from OpenAI Codex. · MIT License</p></footer></main>`;
+  }
+  const viewNames={overview:'Overview',agents:'Endpoints',events:'Threat Hunting',fim:'File Integrity Monitoring'};
+  function renderLab() {
+    const c=active(),r=record();
+    return `<div class="lab-layout"><nav class="sidebar" aria-label="Wazuh-style navigation"><div class="sidebar-label">Dashboards</div>${[['overview','◫','Overview'],['agents','▤','Endpoints'],['events','⌕','Threat Hunting'],['fim','▧','File Integrity Monitoring']].map(([v,icon,label])=>btn('view',label,`nav-btn ${r.view===v?'active':''}`,`data-view="${v}" ${r.view===v?'aria-current="page"':''}`).replace(esc(label),`<span class="nav-icon" aria-hidden="true">${icon}</span>${esc(label)}`)).join('')}<div class="sidebar-label">Wazuhroom</div>${btn('home',t('home'),'nav-btn')}<div class="sidebar-bottom">${esc(t('simulation'))}<br>Wazuh 4.14 reference<br>${esc(t('synthetic'))}</div></nav><div class="workspace"><div class="crumb">Wazuhroom <span>›</span> <strong>${esc(viewNames[r.view])}</strong><span> / ${esc(t('exercise'))} ${C.cases.indexOf(c)}</span></div><div class="mobile-note"><a href="#learning-panel">${esc(t('training'))} ↓</a><a href="#main">${esc(t('investigate'))}</a></div><div class="work-grid"><main class="analysis" id="main" tabindex="-1">${r.view==='overview'?renderOverview():r.view==='agents'?renderAgents():renderEvents()}</main>${renderCoach()}</div></div></div>`;
+  }
+  function renderOverview() {
+    const c=active(),high=c.events.filter(e=>e.rule.level>=10).length,connected=c.agents.filter(a=>a.status==='active').length;
+    return `<div class="page-head"><div><h1>Overview</h1><p>${esc(t('overviewSub'))}</p></div><span class="tag">${esc(t('utc'))}</span></div><div class="stats"><div class="stat"><span>${esc(t('allEvents'))}</span><strong>${c.events.length}</strong></div><div class="stat alert"><span>${esc(t('highAlerts'))}</span><strong>${high}</strong></div><div class="stat good"><span>${esc(t('activeAgents'))}</span><strong>${connected} / ${c.agents.length}</strong></div></div><section class="panel"><div class="panel-head"><h2>Agents status</h2>${btn('view','Endpoints →','quiet small','data-view="agents"')}</div><div class="panel-content donut-row"><div class="donut" style="background:conic-gradient(#00847c 0 ${connected/c.agents.length*100}%,#bd3b39 ${connected/c.agents.length*100}% 100%)"><i>${c.agents.length}</i></div><div class="legend"><span class="status">Active <b>${connected}</b></span><br><span class="status disconnected">Disconnected <b>${c.agents.length-connected}</b></span><br><small>${esc(time(c.timeRange.to))} UTC</small></div></div></section><div class="module-grid"><button class="module-card" data-action="view" data-view="events"><strong>Threat Hunting →</strong><span>${esc(t('eventsSub'))}</span></button><button class="module-card" data-action="view" data-view="fim"><strong>File Integrity Monitoring →</strong><span>${esc(t('fimSub'))}</span></button></div><div class="info" style="margin-top:18px">${esc(t('localTime'))}</div><p class="footer-note">${esc(t('synthetic'))}</p>`;
+  }
+  function renderAgents() {
+    const c=active();let list;try{list=E.searchAgents(c.agents,agentQuery);}catch(_){list=c.agents;}
+    return `<div class="page-head"><div><h1>Endpoints</h1><p>${esc(t('agentsSub'))}</p></div></div><section class="panel"><div class="panel-head"><h2>Agents (${list.length})</h2>${btn('search-help','WQL ?','quiet small')}</div><div class="panel-content"><form id="agent-search" class="searchbar"><input id="agent-query" aria-label="WQL query" placeholder="status=active" value="${esc(agentDraft)}" maxlength="2000"><span class="search-type">WQL</span><button class="primary" type="submit">${esc(t('search'))}</button></form>${searchError?`<div class="error" role="alert">${esc(t(searchError))}</div>`:''}<div class="table-scroll"><table><thead><tr><th>ID</th><th>Name</th><th>IP address</th><th>${esc(t('os'))}</th><th>${esc(t('status'))}</th><th>${esc(t('keepAlive'))}</th><th></th></tr></thead><tbody>${list.map(a=>`<tr><td>${esc(a.id)}</td><td><strong>${esc(a.name)}</strong></td><td class="mono">${esc(a.ip)}</td><td>${esc(a.os.name)} ${esc(a.os.version)}</td><td><span class="status ${a.status==='disconnected'?'disconnected':''}">${esc(a.status)}</span></td><td class="mono">${esc(time(a.lastKeepAlive))}</td><td>${btn('agent-events',t('viewEvents'),'quiet small',`data-id="${esc(a.id)}"`)}</td></tr>`).join('')}</tbody></table>${!list.length?`<div class="empty">${esc(t('agentEmpty'))}</div>`:''}</div></div></section><p class="footer-note">${esc(t('helpWql'))}</p>`;
+  }
+  function filtered() { const r=record();return E.search(active().events,{query:r.query,filters:r.filters,from:r.from,to:r.to,module:r.view==='fim'?'fim':'events'}); }
+  function chartHtml(events) {
+    const r=record(),start=Date.parse(r.from),end=Date.parse(r.to),width=Math.max(1,(end-start)/12),bins=Array(12).fill(0);
+    events.forEach(e=>{const i=Math.min(11,Math.max(0,Math.floor((Date.parse(e.timestamp)-start)/width)));bins[i]++;});
+    const max=Math.max(1,...bins);
+    return `<div class="chart-title"><h3>${esc(t('chart'))}</h3><small>${esc(t('chartHint'))}</small></div><div class="chart">${bins.map((n,i)=>`<button type="button" data-action="chart-range" data-from="${new Date(start+i*width).toISOString()}" data-to="${new Date(i===11?end:start+(i+1)*width-1).toISOString()}" style="height:${Math.max(2,n/max*77)}px" aria-label="${esc(time(new Date(start+i*width).toISOString()))} UTC: ${n}"><span>${n||''}</span></button>`).join('')}</div><div class="chart-axis"><span>${esc(time(r.from))}</span><span>${esc(time(r.to))} UTC</span></div>`;
+  }
+  function fieldRows(event) {
+    const rows=[];
+    function flatten(obj,prefix=''){Object.entries(obj).forEach(([k,v])=>{const key=prefix?prefix+'.'+k:k;if(v&&typeof v==='object'&&!Array.isArray(v))flatten(v,key);else rows.push([key,Array.isArray(v)?v.join(', '):v]);});}flatten(event);
+    return rows.filter(([k])=>k!=='full_log').map(([k,v])=>`<div>${esc(k)}</div><div>${esc(v)}</div><div>${E.FIELD_TYPES[k]&& !Array.isArray(E.get(event,k))?`${btn('field-filter','+','','data-field="'+esc(k)+'" data-value="'+esc(v)+'" title="'+esc(t('filter'))+'" aria-label="'+esc(t('filter')+' '+k)+'"')}${btn('field-exclude','−','','data-field="'+esc(k)+'" data-value="'+esc(v)+'" title="'+esc(t('filterOut'))+'" aria-label="'+esc(t('filterOut')+' '+k)+'"')}`:''}</div>`).join('');
+  }
+  function detailHtml(e) {
+    const has=record().evidence.includes(e.id);
+    return `<div class="event-detail"><div class="detail-tabs"><h3>${esc(t('details'))} <code>${esc(e.id)}</code></h3>${btn('evidence-add',t(has?'added':'addEvidence'),has?'small':'primary small',`data-id="${esc(e.id)}" ${has?'disabled':''}`)}</div><div class="fields">${fieldRows(e)}</div><details data-detail-key="${esc(e.id)}:json" ${detailOpen[e.id+':json']?'open':''}><summary>JSON</summary><pre>${esc(JSON.stringify(e,null,2))}</pre></details><details data-detail-key="${esc(e.id)}:raw" ${detailOpen[e.id+':raw']?'open':''}><summary>${esc(t('original'))} · full_log</summary><pre>${esc(e.full_log)}</pre></details></div>`;
+  }
+  function renderEvents() {
+    const c=active(),r=record(),events=filtered().sort((a,b)=>b.timestamp.localeCompare(a.timestamp)||a.id.localeCompare(b.id));
+    const pageSize=15,pages=Math.max(1,Math.ceil(events.length/pageSize));page=Math.min(page,pages-1);
+    const current=events.slice(page*pageSize,(page+1)*pageSize),fim=r.view==='fim';
+    const labels={'timestamp':t('time'),'agent.name':t('agent'),'rule.description':t('description'),'rule.level':t('level'),'rule.id':'Rule ID','syscheck.path':'Path'};
+    const activeCols=fim?[...cols.filter(x=>x!=='rule.description'),'syscheck.path']:cols;
+    return `<div class="page-head"><div><h1>${fim?'File Integrity Monitoring':'Threat Hunting'}</h1><p>${esc(t(fim?'fimSub':'eventsSub'))}</p></div>${btn('search-help',t('searchHelp'),'quiet small')}</div><form id="event-search" class="searchbar"><input id="event-query" aria-label="DQL query" placeholder='agent.name: "web-01" and rule.level >= 5' maxlength="2000" value="${esc(queryDraft)}"><span class="search-type">DQL</span><button type="submit" class="primary">${esc(t('search'))}</button></form><form id="time-range" class="timebar"><div><label for="range-from">${esc(t('from'))}</label><input id="range-from" type="datetime-local" step="1" value="${esc(fromDraft)}" required></div><div><label for="range-to">${esc(t('to'))}</label><input id="range-to" type="datetime-local" step="1" value="${esc(toDraft)}" required></div><button type="submit">${esc(t('apply'))}</button>${btn('full-range',t('fullRange'),'small')}</form><div class="filterbar">${btn('add-filter','+ '+t('addFilter'),'quiet small')}${r.filters.map((f,i)=>`<div class="filter-chip ${f.negate?'excluded':''} ${f.disabled?'disabled':''}"><code>${f.negate?'NOT ':''}${esc(f.field)}: ${esc(f.value)}</code>${btn('toggle-filter',f.disabled?'○':'●','',`data-index="${i}" aria-label="${esc(t('toggle'))}"`)}${btn('remove-filter','×','',`data-index="${i}" aria-label="${esc(t('remove'))}"`)}</div>`).join('')}${r.filters.length||r.query?btn('clear-search',t('removeFilters'),'quiet small'):''}</div>${searchError?`<div class="error" role="alert">${esc(t(searchError))}</div>`:''}<section class="panel"><div class="panel-content">${chartHtml(events)}</div></section><section class="panel"><div class="panel-head"><h2><span id="hit-count">${events.length}</span> ${esc(t('hits'))}</h2>${btn('columns',t('columns'),'quiet small')}</div>${columnsOpen?`<div class="columns">${['timestamp','agent.name','rule.description','rule.level','rule.id'].map(x=>`<label><input type="checkbox" data-column="${x}" ${cols.includes(x)?'checked':''}> ${esc(labels[x])}</label>`).join('')}</div>`:''}<div class="table-scroll"><table><thead><tr><th aria-label="${esc(t('details'))}"></th>${activeCols.map(k=>`<th>${esc(labels[k])}</th>`).join('')}</tr></thead><tbody>${current.map(e=>`<tr data-event="${esc(e.id)}"><td>${btn('expand',r.expanded===e.id?'▾':'▸','expand-btn',`data-id="${esc(e.id)}" aria-expanded="${r.expanded===e.id}" aria-label="${esc(t('details')+' '+e.id)}"`)}</td>${activeCols.map(k=>`<td class="${k==='rule.description'?'event-description':''}">${k==='timestamp'?`<span class="mono">${esc(time(e.timestamp))}</span><span class="row-id">${esc(e.id)}</span>`:k==='rule.level'?`<span class="level ${e.rule.level>=10?'high':e.rule.level>=7?'medium':''}">${e.rule.level}</span>`:k==='agent.name'?btn('field-filter',E.get(e,k),'quiet',`data-field="agent.name" data-value="${esc(E.get(e,k))}"`):esc(E.get(e,k)||'—')}</td>`).join('')}</tr>${r.expanded===e.id?`<tr><td colspan="${activeCols.length+1}" style="padding:0">${detailHtml(e)}</td></tr>`:''}`).join('')}</tbody></table>${!events.length?`<div class="empty">${esc(t('empty'))}</div>`:''}</div><div class="pagination"><span>${events.length?page*pageSize+1:0}–${Math.min((page+1)*pageSize,events.length)} / ${events.length}</span><div>${btn('prev-page','‹ '+t('prev'),'small',page===0?'disabled':'')} <span>${page+1} / ${pages}</span> ${btn('next-page',t('next')+' ›','small',page>=pages-1?'disabled':'')}</div></div></section><p class="footer-note">${esc(t('synthetic'))}</p>`;
+  }
+  function renderCoach() {
+    const c=active(),r=record();return `<aside class="coach" id="learning-panel" aria-label="${esc(t('training'))}"><div class="coach-header"><div class="eyebrow">${esc(t('training'))} / ${esc(t(c.stage))}</div><h2>${esc(tx(c.title))}</h2><div class="progressline"><i style="width:${(c.steps.filter(s=>s.kind==='report'?r.completed:r.operations.includes(s.kind)).length/c.steps.length)*100}%"></i></div></div><nav class="coach-tabs" aria-label="${esc(t('training'))}">${['task','refs','report'].map(x=>btn('coach-tab',t(x),tab===x?'active':'',`data-tab="${x}" aria-current="${tab===x?'page':'false'}"`)).join('')}</nav><div class="coach-body">${tab==='task'?renderTask():tab==='refs'?renderRefs():renderReport()}</div></aside>`;
+  }
+  function renderTask() {
+    const c=active(),r=record(),first=c.steps.find(s=>s.kind==='report'?!r.completed:!r.operations.includes(s.kind));
+    return `<p>${esc(tx(c.brief))}</p><ul class="inline-list">${c.objectives.map(o=>`<li>${esc(tx(o))}</li>`).join('')}</ul><ol class="steps">${c.steps.map((s,i)=>{const done=s.kind==='report'?r.completed:r.operations.includes(s.kind),current=first?.id===s.id;return `<li class="${done?'done':current?'current':''}"><span class="step-number">${done?'✓':i+1}</span><div><strong>${esc(tx(s.title))}</strong>${(c.stage==='tutorial'||c.stage==='guided')&&current?`<p>${esc(tx(s.body))}</p>${btn('go-step',t('goStep'),'small',`data-kind="${s.kind}"`)}`:''}</div></li>`;}).join('')}</ol><p class="footer-note">${esc(t('checkNote'))}</p>${r.hint?`<div class="step-help"><strong>${esc(t('hint'))} ${r.hint}/3</strong><p>${esc(tx(c.hints[r.hint-1]))}</p></div>`:''}${r.hint<3?btn('hint',t(r.hint?'nextHint':'hint'),'small'): `<p class="muted">${esc(t('noHints'))}</p>`}<div style="margin-top:16px">${btn('coach-tab',t('openReport'),'primary small','data-tab="report"')}</div>`;
+  }
+  function renderRefs() { const c=active(),r=record();return `<p>${esc(t('refNote'))}</p>${c.documents.map(d=>`<button class="doc-button" data-action="document" data-id="${esc(d.id)}"><strong>${esc(tx(d.title))}</strong><br><small>${esc(d.id)} · ${esc(t(r.documents.includes(d.id)?'read':'unread'))}</small></button>`).join('')}`; }
+  function options(values,selected) {return `<option value="">${esc(t('select'))}</option>`+values.map(v=>`<option value="${v}" ${v===selected?'selected':''}>${esc(t(v))}</option>`).join('');}
+  function renderReport() {
+    const c=active(),r=record(),a=r.report;
+    return `<h3>${esc(t('evidence'))} <span class="muted">${r.evidence.length} / ${c.answer.evidenceGroups.length+2}</span></h3><p class="footer-note">${esc(t('evidenceNote'))}</p><div id="evidence-list">${r.evidence.length?r.evidence.map(id=>{const e=c.events.find(x=>x.id===id);return `<div class="evidence-item"><span><code>${esc(id)}</code><br>${esc(e.rule.description)}</span>${btn('evidence-remove','×','small',`data-id="${esc(id)}" aria-label="${esc(t('remove')+' '+id)}"`)}</div>`;}).join(''):`<p class="muted">${esc(t('noEvidence'))}</p>`}</div><form id="report-form" style="margin-top:18px"><div class="report-grid">${[['verdict',['incident','benign','unknown']],['priority',['high','medium','low']],['action',['escalate','monitor','verify']]].map(([key,choices])=>`<div><label for="report-${key}">${esc(t(key))}</label><select id="report-${key}" data-report="${key}">${options(choices,a[key])}</select></div>`).join('')}<div><label for="report-target">${esc(t('target'))}</label><select id="report-target" data-report="target"><option value="">${esc(t('select'))}</option>${c.agents.map(x=>`<option value="${esc(x.id)}" ${a.target===x.id?'selected':''}>${esc(x.name)} (${esc(x.id)})</option>`).join('')}</select></div></div><div class="report-field"><label for="report-facts">${esc(t('facts'))}</label><textarea id="report-facts" data-report="facts" maxlength="4000" placeholder="${esc(t('factsPlaceholder'))}">${esc(a.facts)}</textarea></div><div class="report-field"><label for="report-nextStep">${esc(t('nextStep'))}</label><textarea id="report-nextStep" data-report="nextStep" maxlength="4000" placeholder="${esc(t('nextPlaceholder'))}">${esc(a.nextStep)}</textarea></div><p class="footer-note">${esc(t('structural'))}</p><button type="submit" class="primary">${esc(t('submit'))}</button></form>${r.feedback?`<div class="review"><h3>${esc(t(r.feedback.passed?'passed':'tryAgain'))}</h3><ul class="checks">${r.feedback.checks.map(x=>`<li class="${x.passed?'yes':'no'}">${x.passed?'✓':'○'} ${esc(t(x.key))}</li>`).join('')}</ul>${r.feedback.passed?`<div class="success">${esc(t('modelNote'))}</div>`:''}${btn('show-model',t('showModel'),'small')} ${btn('export-report',t('exportReport'),'quiet small')}${modelOpen?`<div class="review"><h3>${esc(t('model'))}</h3><p><strong>${esc(t('verdict'))}:</strong> ${esc(t(c.answer.verdict))}<br><strong>${esc(t('priority'))}:</strong> ${esc(t(c.answer.priority))}<br><strong>${esc(t('action'))}:</strong> ${esc(t(c.answer.action))}</p><h3>${esc(t('facts'))}</h3><p>${esc(tx(c.answer.facts))}</p><h3>${esc(t('nextStep'))}</h3><p>${esc(tx(c.answer.nextStep))}</p><p>${esc(tx(c.answer.explanation))}</p></div>`:''}${r.completed?`<div style="margin-top:18px">${C.cases.indexOf(c)<C.cases.length-1?btn('next-case',t('nextCase'),'primary small'):btn('home',t('home'),'primary small')}</div>`:''}</div>`:''}`;
+  }
+  function render() {
+    document.documentElement.lang=progress.language;document.title='Wazuhroom — '+t('workflow');
+    app.innerHTML=header()+(home?renderHome():renderLab());
+    if(!home && (active().stage==='tutorial'||active().stage==='guided') && tab==='task') highlight();
+  }
+  function highlight() {const r=record(),step=active().steps.find(s=>s.kind==='report'?!r.completed:!r.operations.includes(s.kind));if(!step)return;const selectors={events:'[data-view="events"]',range:'#time-range',search:'#event-search',detail:'.expand-btn',evidence:'[data-action="evidence-add"]',document:'[data-tab="refs"]',report:'[data-tab="report"]'};document.querySelector(selectors[step.kind])?.classList.add('guide-target');}
+  function setCase(id) { syncDraft();progress.activeCaseId=id;home=false;tab='task';page=0;agentQuery='';agentDraft='';queryDraft=record().query;fromDraft=dt(record().from);toDraft=dt(record().to);searchError='';modelOpen=false;saveLocal();render();window.scrollTo(0,0); }
+  function setView(view) {syncDraft();record().view=view;page=0;searchError='';if(view==='events'||view==='fim')op('events');saveLocal();render();}
+  function modal(title,body,actions='') {document.getElementById('dialog-body').innerHTML=`<div class="dialog-head"><h2>${esc(title)}</h2>${btn('close-dialog','×','quiet','aria-label="'+esc(t('close'))+'"')}</div>${body}${actions?'<div class="dialog-actions">'+actions+'</div>':''}`;if(!dialog.open)dialog.showModal();}
+  function help(searchOnly=false) {
+    modal(t(searchOnly?'searchHelp':'help'),`${!searchOnly?`<p>${esc(t('helpIntro'))}</p><p>${esc(t('helpSave'))}</p><p>${esc(t('helpScope'))}</p>`:''}<h3>DQL</h3><p>${esc(t('helpDql'))}</p><pre>agent.name: "web-01" and rule.level >= 5\nrule.groups: "authentication_failed"\nnot data.srcip: *\n(syscheck.event: "modified" or rule.level >= 10)</pre><h3>WQL</h3><p>${esc(t('helpWql'))}</p><pre>status=disconnected and os.platform=ubuntu\nname~web</pre><details><summary>${esc(t('fieldCount'))}</summary><pre>${Object.keys(E.FIELD_TYPES).map(esc).join('\n')}</pre></details><p class="footer-note">${esc(t('limit'))}</p>`);
+  }
+  function download(filename,body,type='application/json') {const url=URL.createObjectURL(new Blob([body],{type})),a=document.createElement('a');a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);}
+  function exportSave(prefix='wazuhroom-progress') {syncDraft();download(prefix+'.json',JSON.stringify(progress,null,2));}
+  function addFilter(field,value,negate=false) {
+    if(E.FIELD_TYPES[field]==='number'){if(String(value).trim()===''||!Number.isFinite(Number(value))){notify(t('searchError'));return;}value=Number(value);}
+    const r=record(),filters=[...r.filters,{field,value,negate,disabled:false}];
+    try{E.search(active().events,{query:r.query,filters,from:r.from,to:r.to});}catch(_){notify(t('searchError'));return;}
+    r.filters=filters;op('search');page=0;searchError='';saveLocal();render();
+  }
+  function applyRange(from,to) {if(!Number.isFinite(Date.parse(from))||!Number.isFinite(Date.parse(to))||Date.parse(from)>=Date.parse(to)){searchError='rangeError';render();return;}record().from=new Date(from).toISOString();record().to=new Date(to).toISOString();fromDraft=dt(record().from);toDraft=dt(record().to);op('range');searchError='';page=0;saveLocal();render();}
+  function reportText() {const c=active(),r=record(),a=r.report;return ['Wazuhroom '+document.body.dataset.version,tx(c.title),'',...['verdict','priority','action'].map(k=>t(k)+': '+t(a[k]||'select')),t('target')+': '+a.target,'',t('evidence')+': '+r.evidence.join(', '),t('documents')+': '+r.documents.join(', '),'',t('facts'),a.facts,'',t('nextStep'),a.nextStep,'',t('structural')].join('\n');}
+  function handle(action,el) {
+    syncDraft();const r=record(),c=active();
+    switch(action){
+      case 'home':home=true;saveLocal();render();window.scrollTo(0,0);break;
+      case 'case':setCase(el.dataset.id);break;
+      case 'view':setView(el.dataset.view);break;
+      case 'coach-tab':tab=el.dataset.tab;render();if(innerWidth<=680)document.querySelector('.coach').scrollIntoView();break;
+      case 'save':exportSave();notify(t('saved'));break;
+      case 'load':document.getElementById('import-file').click();break;
+      case 'help':help();break;case 'search-help':help(true);break;
+      case 'close-dialog':dialog.close();pendingImport=null;break;
+      case 'full-range':applyRange(c.timeRange.from,c.timeRange.to);break;
+      case 'chart-range':applyRange(el.dataset.from,el.dataset.to);break;
+      case 'clear-search':r.query='';r.filters=[];queryDraft='';searchError='';page=0;saveLocal();render();break;
+      case 'add-filter':modal(t('addFilter'),`<form id="filter-form"><label for="filter-field">${esc(t('field'))}</label><select id="filter-field">${Object.keys(E.FIELD_TYPES).filter(x=>x!=='full_log').map(k=>`<option>${esc(k)}</option>`).join('')}</select><label for="filter-value" style="margin-top:14px">${esc(t('value'))}</label><input id="filter-value" required maxlength="500"><label style="margin-top:12px"><input id="filter-negate" type="checkbox" style="width:auto"> ${esc(t('exclude'))}</label><div class="dialog-actions"><button type="submit" class="primary">${esc(t('apply'))}</button></div></form>`);break;
+      case 'field-filter':case 'field-exclude':addFilter(el.dataset.field,el.dataset.value,action==='field-exclude');break;
+      case 'toggle-filter':r.filters[Number(el.dataset.index)].disabled=!r.filters[Number(el.dataset.index)].disabled;page=0;saveLocal();render();break;
+      case 'remove-filter':r.filters.splice(Number(el.dataset.index),1);page=0;saveLocal();render();break;
+      case 'columns':columnsOpen=!columnsOpen;render();break;
+      case 'prev-page':page=Math.max(0,page-1);render();break;case 'next-page':page++;render();break;
+      case 'expand':r.expanded=r.expanded===el.dataset.id?null:el.dataset.id;if(r.expanded)op('detail');saveLocal();render();break;
+      case 'evidence-add':if(!r.evidence.includes(el.dataset.id)){r.evidence.push(el.dataset.id);op('evidence');saveLocal();render();notify(t('added'));}break;
+      case 'evidence-remove':r.evidence=r.evidence.filter(x=>x!==el.dataset.id);saveLocal();render();break;
+      case 'agent-events':r.view='events';r.filters=[{field:'agent.id',value:el.dataset.id,negate:false,disabled:false}];r.query='';queryDraft='';op('events');op('search');page=0;searchError='';saveLocal();render();notify(t('agentScope'));break;
+      case 'document':{const d=c.documents.find(x=>x.id===el.dataset.id);if(!r.documents.includes(d.id))r.documents.push(d.id);op('document');saveLocal();render();modal(tx(d.title),`<p class="muted mono">${esc(d.id)}</p><div class="doc-body">${esc(tx(d.body))}</div>`);break;}
+      case 'hint':r.hint=Math.min(3,r.hint+1);saveLocal();render();break;
+      case 'go-step':{const kind=el.dataset.kind;if(kind==='document'){tab='refs';render();}else if(kind==='report'){tab='report';render();}else{setView('events');const map={range:'#range-from',search:'#event-query',detail:'.expand-btn',evidence:'[data-action="evidence-add"]'};document.querySelector(map[kind])?.focus();}break;}
+      case 'show-model':modelOpen=!modelOpen;render();break;
+      case 'export-report':download('wazuhroom-'+c.id+'-'+progress.language+'.txt',reportText(),'text/plain');break;
+      case 'next-case':setCase(C.cases[C.cases.indexOf(c)+1].id);break;
+      case 'backup-import':exportSave('wazuhroom-before-import');importBackedUp=true;document.querySelector('[data-action="confirm-import"]').disabled=false;notify(t('saved'));break;
+      case 'confirm-import':if(pendingImport&&importBackedUp){progress=pendingImport;pendingImport=null;storageBlocked=false;home=true;queryDraft=record().query;fromDraft=dt(record().from);toDraft=dt(record().to);saveLocal();dialog.close();render();notify(t('loaded'));}break;
+    }
+  }
+  document.addEventListener('click',ev=>{const el=ev.target.closest('[data-action]');if(el){ev.preventDefault();handle(el.dataset.action,el);}});
+  document.addEventListener('input',ev=>{if(ev.target.dataset.report){record().report[ev.target.dataset.report]=ev.target.value;saveLocal();}});
+  document.addEventListener('change',ev=>{
+    const el=ev.target;
+    if(el.id==='language'){syncDraft();progress.language=el.value;saveLocal();render();}
+    if(el.dataset.report){record().report[el.dataset.report]=el.value;saveLocal();}
+    if(el.dataset.column){if(el.checked)cols.push(el.dataset.column);else if(cols.length>1)cols=cols.filter(x=>x!==el.dataset.column);render();}
+  });
+  document.addEventListener('submit',ev=>{
+    ev.preventDefault();syncDraft();const r=record();
+    if(ev.target.id==='event-search'){
+      try{E.search(active().events,{query:queryDraft,filters:r.filters,from:r.from,to:r.to});r.query=queryDraft;if(r.query.trim()||r.filters.some(x=>!x.disabled))op('search');searchError='';page=0;saveLocal();}catch(_){searchError='searchError';}render();
+    }else if(ev.target.id==='agent-search'){
+      try{E.searchAgents(active().agents,agentDraft);agentQuery=agentDraft;searchError='';}catch(_){searchError='searchError';}render();
+    }else if(ev.target.id==='time-range'){
+      applyRange(document.getElementById('range-from').value+'Z',document.getElementById('range-to').value+'Z');
+    }else if(ev.target.id==='filter-form'){
+      const field=document.getElementById('filter-field').value,value=document.getElementById('filter-value').value,negate=document.getElementById('filter-negate').checked;dialog.close();addFilter(field,value,negate);
+    }else if(ev.target.id==='report-form'){
+      op('report');r.feedback=E.assess(active(),r);
+      if(r.feedback.passed){r.completed=true;const snapshot=clone(r);delete snapshot.completion;r.completion=snapshot;modelOpen=true;}
+      saveLocal();render();document.querySelector('.review')?.scrollIntoView({block:'nearest'});
+    }
+  });
+  document.getElementById('import-file').addEventListener('change',async ev=>{
+    const file=ev.target.files[0];ev.target.value='';if(!file)return;
+    try{if(file.size>2*1024*1024)throw new Error('large');const parsed=JSON.parse(await file.text());pendingImport=E.validateProgress(parsed,C);importBackedUp=false;const count=C.cases.filter(c=>pendingImport.records[c.id].completed).length;modal(t('importTitle'),`<p>${esc(t('importNote'))}</p><p>${esc(t('completed'))}: ${count} / ${C.cases.length}</p>`,btn('backup-import',t('backup'))+btn('confirm-import',t('replace'),'primary','disabled'));}
+    catch(_){pendingImport=null;notify(t('invalidFile'));}
+  });
+  render();if(startupWarning)notify(t(startupWarning));
+}());
+</script>
+</body>
+</html>
