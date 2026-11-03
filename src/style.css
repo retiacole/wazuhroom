@@ -10,3 +10,7 @@
 @media(max-width:1150px){.timebar{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .mobile-note{padding:10px 14px;background:#edf6fb;font-size:12px}
 .mobile-note a{margin-right:18px}
+.detail-tabs{flex-wrap:wrap}
+.investigation-findings{border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:16px}
+.investigation-findings input,.investigation-findings textarea,#base64-input{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px}
+.investigation-findings textarea,#base64-input{min-height:130px}

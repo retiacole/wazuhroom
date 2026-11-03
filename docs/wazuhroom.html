@@ -18,9 +18,13 @@
 @media(max-width:1150px){.timebar{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .mobile-note{padding:10px 14px;background:#edf6fb;font-size:12px}
 .mobile-note a{margin-right:18px}
+.detail-tabs{flex-wrap:wrap}
+.investigation-findings{border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:16px}
+.investigation-findings input,.investigation-findings textarea,#base64-input{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px}
+.investigation-findings textarea,#base64-input{min-height:130px}
 </style>
 </head>
-<body data-version="0.1.1">
+<body data-version="0.2.0">
 <a class="skip" href="#main">Skip to content / 本文へ</a>
 <div id="app"></div>
 <div id="notice" class="notice" role="status" aria-live="polite"></div>
@@ -114,8 +118,8 @@
     'Common background coverage: Linux endpoints web-01 and db-01 provide successful SSH public-key authentication by svc.inventory from 10.20.0.5 and logrotate completion by root. Windows endpoint win-fin-01 provides Security 4624 events for svc.inventory from 10.20.0.5 (logonType 3: network logon) and System 7036 events reporting the Windows Event Log service running. These are routine operations in this exercise. In the collection-gap case, the last-observation and disconnect times below take precedence; no db-01 background telemetry arrives after disconnection.'
   );
   const runbook = B(
-    '報告フォームの「判定」：「インシデント」はインシデント候補として引き継ぐ状態、「正当な活動」は承認済み作業と証拠が一致する状態、「判断保留」は判断に必要な観測が不足する状態です。「優先度」の「高」は不審な認証成功後の権限操作、承認外の自動起動サービス、重要な認証設定の承認外変更。「中」は予定時間を超えて復旧未確認の監視欠落。「低」は単独の認証失敗、または承認済み作業との一致です。「次の対応」は「担当へエスカレーション」（上位担当へ引継ぎ）、「追加確認を依頼」（担当者・収集経路へ確認）、「監視を継続」（記録を残して継続監視）から選びます。「主な対象」を選び、「確認した事実と根拠」には端末・時刻・根拠イベント・参照文書を、「未確認事項・引継ぎ先・次の確認」には分からないことと確認先を短く記入してください。rule.levelは調査の入口であり、侵害の確定や業務優先度そのものではありません。教材の報告・採点欄はWazuhroom独自機能です。',
-    'Report form — Verdict: “Incident” means hand over an incident candidate; “Benign activity” means evidence matches approved work; “Insufficient evidence” means important observations are missing. Priority — “High”: suspicious successful authentication followed by privileged activity, an unapproved auto-start service, or an unapproved change to critical authentication configuration. “Medium”: a collection gap with recovery unconfirmed beyond its planned window. “Low”: a single authentication failure or activity matching approved work. Next action: choose “Escalate to the responsible team” for a responder handover, “Request verification” for checks with the owner or collection team, or “Continue monitoring” while retaining the record. Select the “Primary target”. In “Observed facts and evidence”, record the endpoint, time, supporting events, and references. In “Unknowns, recipient, and next checks”, state what is missing and who should check it. A rule level is a lead, not proof of compromise or the business priority itself. The report and scoring panel belongs to Wazuhroom, not the Wazuh product.'
+    '報告フォームの「判定」：「インシデント」はインシデント候補として引き継ぐ状態、「正当な活動」は承認済み作業と証拠が一致する状態、「判断保留」は判断に必要な観測が不足する状態です。「優先度」の「高」は不審な認証成功後の権限操作、承認外の自動起動サービス、重要な認証設定の承認外変更、承認外の採掘用途が疑われる処理、または停止後の不審プロセス再出現。「中」は予定時間を超えて復旧未確認の監視欠落。「低」は単独の認証失敗、または承認済み作業との一致です。「次の対応」は「担当へエスカレーション」（上位担当へ引継ぎ）、「追加確認を依頼」（担当者・収集経路へ確認）、「監視を継続」（記録を残して継続監視）から選びます。「主な対象」を選び、「確認した事実と根拠」には端末・時刻・根拠イベント・参照文書を、「未確認事項・引継ぎ先・次の確認」には分からないことと確認先を短く記入してください。rule.levelは調査の入口であり、侵害の確定や業務優先度そのものではありません。教材の報告・採点欄はWazuhroom独自機能です。',
+    'Report form — Verdict: “Incident” means hand over an incident candidate; “Benign activity” means evidence matches approved work; “Insufficient evidence” means important observations are missing. Priority — “High”: suspicious successful authentication followed by privileged activity, an unapproved auto-start service, an unapproved change to critical authentication configuration, suspected unauthorized mining activity, or a suspicious process recurring after a stop. “Medium”: a collection gap with recovery unconfirmed beyond its planned window. “Low”: a single authentication failure or activity matching approved work. Next action: choose “Escalate to the responsible team” for a responder handover, “Request verification” for checks with the owner or collection team, or “Continue monitoring” while retaining the record. Select the “Primary target”. In “Observed facts and evidence”, record the endpoint, time, supporting events, and references. In “Unknowns, recipient, and next checks”, state what is missing and who should check it. A rule level is a lead, not proof of compromise or the business priority itself. The report and scoring panel belongs to Wazuhroom, not the Wazuh product.'
   );
 
   function document(id, title, body) { return { id, title, body }; }
@@ -139,7 +143,9 @@
     result.push(step(caseId, 'detail', B('詳細と元ログを読む', 'Read details and the original log'), B('関係する行を展開して、agent、時刻、rule、data、full_logを確認します。表示されない項目は推測で補いません。', 'Expand a relevant row and inspect the agent, time, rule, data, and full_log. Do not invent values for absent fields.')));
     result.push(step(caseId, 'evidence', B('判断を支える証拠を選ぶ', 'Select supporting evidence'), caseId === 'mixed-auth'
       ? B('win-fin-01のログオンとサービス登録に加え、比較対象であるweb-01の認証失敗を少なくとも1件、証拠に追加してください。両端末の出来事を比較した根拠を残し、同時刻というだけで関係を断定しないようにします。', 'Add evidence for the win-fin-01 logon and service registration, plus at least one authentication failure from web-01 as comparison evidence. Keep the records used to compare the endpoints; time overlap alone must not establish a connection.')
-      : B('結論に必要なイベントを証拠として追加します。大量の正常ログを選ぶより、出来事のつながりを説明できる少数の記録を選びます。', 'Add the events needed to support your conclusion. Prefer a few records that explain the sequence over many unrelated routine events.')));
+      : caseId === 'crypto-compromise'
+        ? B('次の7種類をそれぞれ証拠に追加します：①HTTPアップロード要求と応答、②停止前のプロセス採取、③②と同じPIDの外部接続、④定期実行エントリの読取り、⑤停止後に別PIDで再出現したプロセス採取、⑥Base64を含む別のPOST要求と応答、⑦PHPファイルの読取り専用レビュー。⑥の送信先URIを特定し、⑦と「Web公開設定とファイル確認 WEB-219」を照合して実パスを求めます。⑥のdata.artifact.encoded_contentをBase64ツールで復号して、3つの設問にも回答してください。HTTP200の応答本文、実行ユーザー、時刻、PIDを比較し、記録が示すことと示さないことを分けます。', 'Add each of these seven evidence types: (1) the HTTP upload request/response, (2) the pre-stop process snapshot, (3) its outbound connection with the same PID, (4) the scheduled-entry observation, (5) the post-stop process snapshot with a different PID, (6) a separate POST request/response containing Base64, and (7) the read-only PHP-file review. Identify the destination URI in (6), then use (7) and “Web publication mapping and file review WEB-219” to determine its filesystem path. Decode data.artifact.encoded_content from (6) with the Base64 tool and answer all three case questions. Compare the HTTP 200 response body, account, time, and PID, separating what each record establishes from what it does not.')
+        : B('結論に必要なイベントを証拠として追加します。大量の正常ログを選ぶより、出来事のつながりを説明できる少数の記録を選びます。', 'Add the events needed to support your conclusion. Prefer a few records that explain the sequence over many unrelated routine events.')));
     result.push(step(caseId, 'document', B('資料と判断基準を読む', 'Read references and the triage policy'), B('収集範囲、作業記録、SOC一次対応の判断基準を読みます。', 'Read the collection scope, work records, and SOC triage policy.')));
     result.push(step(caseId, 'report', B('根拠付きで一次報告する', 'Submit an evidence-based report'), B('「判定」「優先度」「次の対応」「主な対象」を選びます。「確認した事実と根拠」に観測事実を、「未確認事項・引継ぎ先・次の確認」に分からないことと誰に何を確認するかを書いて報告してください。', 'Select “Verdict”, “Priority”, “Next action”, and “Primary target”. Record observations in “Observed facts and evidence”. Use “Unknowns, recipient, and next checks” to state what is missing and who should check what next.')));
     return result;
@@ -395,7 +401,98 @@
     }
   });
 
-  const cases = [tutorial, auth, admin, service, gap, mixed, fim];
+  const cryptoId = 'crypto-compromise';
+  const cryptoPath = '/opt/room-lab/workers/room-worker-07.bin';
+  const cryptoArgs = '--algo cryptonight --pool pool-07.room.invalid:6149 --wallet TRAINING-WALLET-07-NOT-A-REAL-ADDRESS --worker room-case-08';
+  const cryptoWebUri = '/room-lab/ops/inspect.php';
+  const cryptoWebPath = '/srv/room-lab/www/ops/inspect.php';
+  const cryptoDecodedText = 'TRAINING PSEUDOCODE - NOT EXECUTABLE\nSET display_errors = off\nSET request.REMOTE_ADDR = 192.0.2.73\nSET request.SCRIPT_NAME = /room-lab/forms/contact.php\nREQUEST MAIL TO mailbox-07@room.invalid\nDISPLAY mail_request_result';
+  const cryptoEncodedText = 'VFJBSU5JTkcgUFNFVURPQ09ERSAtIE5PVCBFWEVDVVRBQkxFClNFVCBkaXNwbGF5X2Vycm9ycyA9IG9mZgpTRVQgcmVxdWVzdC5SRU1PVEVfQUREUiA9IDE5Mi4wLjIuNzMKU0VUIHJlcXVlc3QuU0NSSVBUX05BTUUgPSAvcm9vbS1sYWIvZm9ybXMvY29udGFjdC5waHAKUkVRVUVTVCBNQUlMIFRPIG1haWxib3gtMDdAcm9vbS5pbnZhbGlkCkRJU1BMQVkgbWFpbF9yZXF1ZXN0X3Jlc3VsdA==';
+  const crypto = assemble({
+    id: cryptoId, stage: 'independent', revision: 2,
+    title: B('自力調査：停止したはずのプロセスが戻った', 'Independent: the process returns after a temporary stop'),
+    brief: B('web-01で高CPUの処理が見つかり、担当者が一度停止しました。その後の記録を含め、一次対応を引き継いでください。必要な証拠は7種類です：HTTPアップロード要求と応答、停止前のプロセス、同じPIDの外部接続、定期実行エントリ、停止後の別PIDでの再出現、Base64を含む別のPOST要求と応答、PHPファイルの読取り専用レビュー。Webshellが使われたURIとサーバー内の絶対パスを、通信記録・ファイルレビュー・「Web公開設定とファイル確認 WEB-219」から確かめます。POST本文のBase64を復号し、復号全文を含む3つの設問に回答してください。HTTP200を実行成功と扱わず、時系列と「運用・一次対応記録 OPS-218」を照合して報告します。', 'A high-CPU process was found on web-01 and an operator temporarily stopped it. Review subsequent observations and prepare a handover. Include seven evidence types: the HTTP upload request/response, the pre-stop process, an outbound connection with the same PID, a scheduled entry, recurrence under a different PID after the stop, a separate POST request/response containing Base64, and the read-only PHP-file review. Establish the webshell URI and absolute server path using the HTTP records, file review, and “Web publication mapping and file review WEB-219”. Decode the Base64 in the POST body and answer all three case questions, including the full decoded text. Compare the timeline with “Operations and initial-response record OPS-218”; do not treat HTTP 200 as proof of execution.'),
+    objectives: [
+      B('HTTPの応答、端末プロセス、外部接続の証拠を区別する', 'Distinguish HTTP response evidence from endpoint process and connection evidence'),
+      B('POSTの送信先からWebshellを見つけ、公開設定とファイル確認で実パスを特定する', 'Find the webshell through POST destinations and establish its filesystem path from publication settings and a file review'),
+      B('Base64を実行せずに復号し、メール送信要求と要求変数の書換えを読み取る', 'Decode Base64 without execution and interpret the mail request and changes to request variables'),
+      B('PID・実行アカウント・時刻を使って別ソースを突合する', 'Correlate separate sources using PID, execution account, and time'),
+      B('一時停止と駆除完了を分け、再出現と未確認事項を引き継ぐ', 'Distinguish a temporary stop from eradication and hand over recurrence and unknowns')
+    ],
+    timeRange: { from: iso('2026-10-21', '16:00'), to: iso('2026-10-21', '16:40') },
+    questions: [
+      { id: 'webshellUri', label: B('WebshellのURI', 'Webshell URI'), prompt: B('コード処理要求を受けたWebshellのURIを、先頭の / から記入してください。ホスト名は含めません。', 'Enter the URI that received the webshell code-processing request, starting with /. Do not include the hostname.'), acceptedAnswers: [cryptoWebUri] },
+      { id: 'webshellPath', label: B('Webshellの絶対パス', 'Absolute webshell path'), prompt: B('WEB-219の公開設定とホスト側ファイルレビューを根拠に、Webshellのサーバー内の絶対パスを記入してください。', 'Use the publication mapping in WEB-219 and the host file review to enter the absolute server filesystem path of the webshell.'), acceptedAnswers: [cryptoWebPath] },
+      { id: 'decodedText', label: B('Base64の復号全文', 'Full Base64-decoded text'), prompt: B('コード処理POSTのdata.artifact.encoded_contentをBase64ツールで復号し、6行の全文をそのまま記入してください。内容は実行しません。意味は一次報告に書きます。', 'Decode data.artifact.encoded_content from the code-processing POST with the Base64 tool and enter all six lines exactly as decoded. Do not execute the content. Explain its meaning in your investigation report.'), acceptedAnswers: [cryptoDecodedText], multiline: true }
+    ],
+    hints: [
+      B('agent.name: "web-01" と data.http.method: "POST" でHTTP要求を探します。16:08と16:09は同じURIへの異なる要求です。16:10のファイルレビューとWEB-219を合わせて、通常のフォームかWebshell機能を持つファイルかを判断してください。最初のプロセス観測がHTTP要求より先かも確認します。', 'Find HTTP requests with agent.name: "web-01" and data.http.method: "POST". The 16:08 and 16:09 records are different requests to the same URI. Compare the 16:10 file review with WEB-219 to determine whether it is an ordinary form or a file with webshell capabilities. Also check whether the initial process observation precedes the HTTP requests.'),
+      B('WEB-219では公開URIの /room-lab/ を /srv/room-lab/www/ に対応させます。16:09のdata.artifact.encoded_contentを復号し、疑似コードのREMOTE_ADDRやSCRIPT_NAMEを実際の通信元・設置パスと混同しないでください。data.process.pid: 42617 で停止前の処理と接続を比較し、svc.web-labの定期実行と停止後の記録も確認します。', 'WEB-219 maps the URI prefix /room-lab/ to /srv/room-lab/www/. Decode data.artifact.encoded_content from 16:09. Do not confuse the pseudocode’s REMOTE_ADDR or SCRIPT_NAME with the observed network source or installed path. Compare the pre-stop process and connection using data.process.pid: 42617, then review the svc.web-lab scheduled entry and later observations.'),
+      B(`16:03、16:04、16:08、16:09、16:10、16:12、16:28の7件を選びます。URIは${cryptoWebUri}、実パスは${cryptoWebPath}。復号全文は次の6行です。\n${cryptoDecodedText}\n\n意味は表示抑制、要求変数の書換え、メール送信の要求と結果表示であり、配達成功や実際の通信元を証明しません。アップロード応答にはPermission deniedがあり、HTTP要求は最初の実行観測より後です。OPS-218の一時停止後に同系統の処理が戻っているため「インシデント」／「高」／「担当へエスカレーション」、主な対象「web-01 (001)」で引き継ぎます。`, `Select the seven records at 16:03, 16:04, 16:08, 16:09, 16:10, 16:12, and 16:28. The URI is ${cryptoWebUri}; the filesystem path is ${cryptoWebPath}. The full decoded text is these six lines:\n${cryptoDecodedText}\n\nIt represents suppressing displayed errors, changing request variables, requesting mail, and displaying a result; it does not establish delivery or the actual network source. The upload response contains Permission denied, and the HTTP requests follow the initial process observation. Related activity recurs after the temporary stop in OPS-218. Select “Incident” / “High” / “Escalate to the responsible team” with primary target “web-01 (001)”.`)
+    ],
+    documents: documents(cryptoId,
+      B('このケースのHTTP要約、端末採取、ファイルレビュー、公開設定、アカウント、時刻、識別子、運用記録はすべて、行動パターンを学ぶために独立して構成した架空の教材です。実際のパケットキャプチャをWazuhログへ変換したものではありません。IP・URL・パス・PID・ポートを含む値は学習用で、.invalidの宛先と無効なウォレット表記は実接続・送金に使えません。実行可能ファイルやPHPソースは含みません。Base64には独自に作成した非実行の英語疑似コードだけを収録し、原資料のコードや個人情報は含めていません。\n\n対象期間は2026-10-21 16:00–16:40 UTC。HTTP要約は架空の監視センサーが要求と応答を同じrequest_idで対応させた記録です。16:08のアップロードと16:09のコード処理は別のPOSTです。POSTと200だけではファイル書込み・コード実行・メール配達の成功を判断できません。16:08は応答本文の書込みエラーを、16:09は要求された処理と応答に含まれない確認情報を読みます。アップロード内容は説明文だけで、ファイル本体はありません。16:09のdata.artifact.encoded_contentはWebshellへ送られたPOST本文を練習用疑似コードに置換したものです。Base64は文字列の表現方式であり、復号自体は実行ではありません。\n\n端末のプロセス一覧、ソケット一覧、定期実行エントリ、ファイルレビュー、公開設定、担当者の作業メモは、通信記録だけでは得られない情報を練習するために補った合成観測です。ファイルレビューは読取り専用の静的な機能要約で、PHPを実行した記録ではありません。URIから実パスを自動的に推定せず、WEB-219の対応設定とホスト側の確認を使います。疑似コード内で書き換えるREMOTE_ADDRやSCRIPT_NAMEは、監視センサーが観測した接続元IPやファイルの設置場所とは別です。process.pidは同じ端末・近い時刻でのみ突合し、pidだけを永久的な識別子としません。cpu_pctは採取時の値で、全期間の負荷ではありません。cronは16:12の読取り結果であり、追加時刻・追加者・実際の起動原因は記録していません。FIM、完全なプロセス系譜、特権昇格、採掘成果の記録はありません。',
+        'Every HTTP summary, endpoint observation, file review, publication setting, account, timestamp, identifier, and operations note in this case is independently authored fictional training content based on generalized behavior patterns. It is not a conversion of real packet captures into Wazuh logs. IPs, URLs, paths, PIDs, and ports are teaching values; .invalid destinations and the invalid wallet token cannot be used for real connections or payment. No executable files or PHP source are included. The Base64 contains only independently written, non-executable English pseudocode, without source-material code or personal information.\n\nWindow: 2026-10-21 16:00–16:40 UTC. HTTP summaries represent a fictional sensor matching each request and response using one request_id. The 16:08 upload and 16:09 code-processing request are separate POSTs. POST and 200 alone do not establish successful file writes, code execution, or mail delivery. Read the write error in the 16:08 response body and distinguish the requested behavior at 16:09 from confirmation missing in its response. Uploaded content is represented only by a description, not file bytes. At 16:09, data.artifact.encoded_content represents a POST body sent to the webshell, replaced with training pseudocode. Base64 is a text representation; decoding is not execution.\n\nProcess lists, socket lists, scheduled entries, file reviews, publication settings, and operator notes are synthetic supplementary observations used to practise reasoning about information unavailable from packet captures alone. The file review is a read-only static behavior summary, not a record of executing PHP. Do not infer filesystem paths from URIs alone: use the mapping and host-side confirmation in WEB-219. REMOTE_ADDR and SCRIPT_NAME changed in the pseudocode are distinct from the network source observed by the sensor and the installed file location. Correlate process.pid only on the same endpoint at nearby times; a PID is not a permanent identifier. cpu_pct is a snapshot, not load across the entire window. The cron record is a read at 16:12, not evidence of when or by whom it was added or what actually launched a process. FIM, complete process ancestry, privilege escalation, and mining rewards are unavailable.'),
+      B('運用・一次対応記録 OPS-218', 'Operations and initial-response record OPS-218'),
+      B('架空の運用記録。web-01は社内向け文書サービスで、svc.web-labはWebサービス用アカウントです。この端末で暗号資産採掘、外部プールへの接続、room-worker-07.binの定期実行は承認されていません。通常の保守作業は定期インベントリとlogrotateであり、今回の処理はその範囲外です。\n\n担当者は16:20 UTCにPID 42617を一度停止し、16:21の採取では同じ実行パスのプロセスが見つからないことを確認しました。これは一時対応で、ファイル除去、定期実行設定の整理、侵入経路の修復、認証情報の調査、復旧判定は未完了です。16:28以降の記録を含めて上位担当へ引き継ぐよう依頼されています。業務影響を確認せずプロセス停止だけを繰り返したり、調査に必要なファイルやログを消したりしないでください。',
+        'Fictional operations record. web-01 hosts an internal document service; svc.web-lab is its web-service account. Cryptocurrency mining, connections to an external pool, and scheduled execution of room-worker-07.bin are not approved on this endpoint. Routine maintenance consists of inventory collection and logrotate; the observed workload is outside that scope.\n\nAt 16:20 UTC, the operator temporarily stopped PID 42617. The 16:21 snapshot found no process with the same executable path. This was a temporary response: file removal, scheduled-entry remediation, entry-route repair, credential investigation, and recovery validation remain incomplete. The operator requests escalation including observations from 16:28 onward. Do not simply repeat process termination without assessing business impact or delete files and logs needed for investigation.'), [
+          document('crypto-compromise-webroot', B('Web公開設定とファイル確認 WEB-219', 'Web publication mapping and file review WEB-219'), B(
+            `架空の構成・読取り記録。2026-10-21 16:10 UTCに、担当者がweb-01の公開設定と該当ファイルを読み取り専用で確認しました。対象ホストはportal-07.room.invalid、公開URIの接頭辞 /room-lab/ はサーバー内の /srv/room-lab/www/ に対応します。この範囲ではURL書換え、別ディレクトリへのalias、シンボリックリンク、別サーバーへの転送はありません。URIの接頭辞に続く部分を公開ディレクトリへ対応させ、ホスト側レビューのdata.pathと照合してください。\n\nレビュー対象は ${cryptoWebPath}。そのファイルが存在することを確認し、POST入力をサーバー側のコード処理に渡す機能とアップロード処理を認めました。通常の文書サービスにはこのような管理機能の設置・使用承認はなく、Webshell機能を持つファイルとして取り扱います。教材には機能の要約だけを載せ、PHPソースや実行可能な命令は収録しません。16:09の符号化文字列はこのファイルへ送られた要求の観測であり、ファイル内に埋め込まれた内容として確認したものではありません。\n\nファイルの配置時刻・配置者・初期侵入方法は未確認です。機能が存在することと、個々の要求の処理や外部メール配達が成功したことは分けて判断してください。`,
+            `Fictional configuration and read-only review record. At 2026-10-21 16:10 UTC, an operator inspected the publication settings and relevant file on web-01 without executing it. The host is portal-07.room.invalid. The URI prefix /room-lab/ maps to /srv/room-lab/www/ on the server. There are no URL rewrites, aliases to other directories, symbolic links, or forwarding to another server in this scope. Append the suffix after the URI prefix to the published directory, then compare it with data.path in the host review.\n\nThe reviewed file is ${cryptoWebPath}. The operator confirmed that it exists and found behavior that passes POST input to server-side code processing, as well as upload handling. These administrative capabilities are neither an approved installation nor approved use of the document service; treat this as a file with webshell capabilities. Only a behavior summary is included in the exercise, without PHP source or executable instructions. The encoded string at 16:09 was observed in a request sent to this file, not recovered as content embedded in the file.\n\nThe installation time, installing actor, and initial entry route remain unconfirmed. Distinguish the presence of a capability from successful processing of a particular request or delivery of external mail.`
+          ))
+        ]),
+    events: [
+      event('crypto-compromise-process', iso('2026-10-21', '16:03'), '001', 100051, 8, 'Training: high-CPU process snapshot', ['wazuhroom', 'process_snapshot'], 'wazuhroom-process-snapshot', {
+        action: 'process_observed', process: { pid: 42617, ppid: 41801, name: 'room-worker-07', cmd: cryptoPath, args: cryptoArgs, euser: 'svc.web-lab', cpu_pct: 97.8, start_time: iso('2026-10-21', '16:01') }
+      }, `2026-10-21T16:03:00Z web-01 training-process-snapshot: pid=42617 ppid=41801 euser=svc.web-lab cpu_pct=97.8 start_time=2026-10-21T16:01:00Z executable=${cryptoPath} args="${cryptoArgs}"`),
+      event('crypto-compromise-connection', iso('2026-10-21', '16:04'), '001', 100052, 5, 'Training: outbound socket snapshot', ['wazuhroom', 'network_snapshot'], 'wazuhroom-socket-snapshot', {
+        action: 'connection_observed', srcip: '10.20.1.11', srcport: 49317, dstip: '203.0.113.184', dstport: 6149, status: 'ESTABLISHED', process: { pid: 42617, name: 'room-worker-07', euser: 'svc.web-lab' }
+      }, '2026-10-21T16:04:00Z web-01 training-socket-snapshot: tcp state=ESTABLISHED local=10.20.1.11:49317 remote=203.0.113.184:6149 pid=42617 euser=svc.web-lab'),
+      event('crypto-compromise-http', iso('2026-10-21', '16:08'), '001', 100050, 5, 'Training: HTTP upload request and response observed', ['wazuhroom', 'http_exchange'], 'wazuhroom-http-summary', {
+        action: 'http_upload_attempt', srcip: '198.51.100.143', dstip: '10.20.1.11', dstport: 80,
+        http: { method: 'POST', status_code: 200, host: 'portal-07.room.invalid', uri: cryptoWebUri, request_id: 'ROOM-HTTP-08-041', upload_name: 'room-worker-07.bin', body_summary: 'Multipart upload attempt containing an ELF-like file with mining-related strings; executable bytes omitted.', response_summary: 'File write failed: Permission denied. HTTP response delivered; file placement and execution are not confirmed.' }
+      }, '2026-10-21T16:08:00Z web-01 training-http-summary: request_id=ROOM-HTTP-08-041 source=198.51.100.143 method=POST host=portal-07.room.invalid uri=/room-lab/ops/inspect.php upload_name=room-worker-07.bin status=200 response_summary="File write failed: Permission denied" payload_bytes=omitted'),
+      event('crypto-compromise-webpost', iso('2026-10-21', '16:09'), '001', 100055, 7, 'Training: HTTP code-processing request observed', ['wazuhroom', 'http_exchange'], 'wazuhroom-http-summary', {
+        action: 'http_code_processing_request', srcip: '198.51.100.143', dstip: '10.20.1.11', dstport: 80,
+        http: { method: 'POST', status_code: 200, host: 'portal-07.room.invalid', uri: cryptoWebUri, request_id: 'ROOM-HTTP-08-042', body_summary: 'POST asks the server to process encoded code. The content is replaced with non-executable training pseudocode in data.artifact.encoded_content.', response_summary: 'A code-processing interface is present in the response. Successful server-side effects and external mail delivery are not confirmed.' },
+        artifact: { encoding: 'base64', encoded_content: cryptoEncodedText }
+      }, `2026-10-21T16:09:00Z web-01 training-http-summary: request_id=ROOM-HTTP-08-042 source=198.51.100.143 method=POST host=portal-07.room.invalid uri=${cryptoWebUri} status=200 request_behavior=code_processing encoding=base64 encoded_content=${cryptoEncodedText} representation=non_executable_training_pseudocode server_side_effects=unconfirmed`),
+      event('crypto-compromise-file', iso('2026-10-21', '16:10'), '001', 100056, 7, 'Training: web-file behavior reviewed', ['wazuhroom', 'file_review'], 'wazuhroom-file-review', {
+        action: 'file_inspection_observed', path: cryptoWebPath,
+        artifact: { content_summary: 'Read-only static review: the PHP file exists and passes POST input to server-side code processing; upload handling is also present. Behavior summary only; no PHP source or executable payload included. Installation time and actor are unknown.' }
+      }, `2026-10-21T16:10:00Z web-01 training-file-review: path=${cryptoWebPath} observation=read_only file_exists=true behavior="POST input to server-side code processing; upload handling" source_code=omitted installed_at=unknown actor=unknown`),
+      event('crypto-compromise-cron', iso('2026-10-21', '16:12'), '001', 100053, 5, 'Training: scheduled-task entry observed', ['wazuhroom', 'scheduled_entry'], 'wazuhroom-schedule-snapshot', {
+        action: 'scheduled_entry_observed', user: 'svc.web-lab', schedule: '*/4 * * * *', path: cryptoPath,
+        command: `${cryptoPath} --config /opt/room-lab/settings/worker-07.json`
+      }, `2026-10-21T16:12:00Z web-01 training-schedule-snapshot: owner=svc.web-lab schedule="*/4 * * * *" command="${cryptoPath} --config /opt/room-lab/settings/worker-07.json" observation=read_only author=unknown added_at=unknown`),
+      event('crypto-compromise-absent', iso('2026-10-21', '16:21'), '001', 100054, 3, 'Training: selected process absent from snapshot', ['wazuhroom', 'process_snapshot'], 'wazuhroom-process-snapshot', {
+        action: 'process_not_observed', path: cryptoPath, user: 'svc.web-lab', status: 'not_found_in_snapshot'
+      }, `2026-10-21T16:21:00Z web-01 training-process-snapshot: executable=${cryptoPath} matching_processes=0 scope=current_snapshot`),
+      event('crypto-compromise-recurrence', iso('2026-10-21', '16:28'), '001', 100051, 8, 'Training: high-CPU process snapshot', ['wazuhroom', 'process_snapshot'], 'wazuhroom-process-snapshot', {
+        action: 'process_observed', process: { pid: 43829, ppid: 43702, name: 'room-worker-07', cmd: cryptoPath, args: cryptoArgs, euser: 'svc.web-lab', cpu_pct: 96.2, start_time: iso('2026-10-21', '16:27') }
+      }, `2026-10-21T16:28:00Z web-01 training-process-snapshot: pid=43829 ppid=43702 euser=svc.web-lab cpu_pct=96.2 start_time=2026-10-21T16:27:00Z executable=${cryptoPath} args="${cryptoArgs}"`),
+      event('crypto-compromise-reconnection', iso('2026-10-21', '16:29'), '001', 100052, 5, 'Training: outbound socket snapshot', ['wazuhroom', 'network_snapshot'], 'wazuhroom-socket-snapshot', {
+        action: 'connection_observed', srcip: '10.20.1.11', srcport: 49623, dstip: '203.0.113.184', dstport: 6149, status: 'ESTABLISHED', process: { pid: 43829, name: 'room-worker-07', euser: 'svc.web-lab' }
+      }, '2026-10-21T16:29:00Z web-01 training-socket-snapshot: tcp state=ESTABLISHED local=10.20.1.11:49623 remote=203.0.113.184:6149 pid=43829 euser=svc.web-lab')
+    ],
+    steps: standardSteps(cryptoId, 'independent', 'web-01').map(item => item.kind !== 'report' ? item : {
+      ...item,
+      body: B('WebshellのURI、Webshellの絶対パス、Base64の復号全文の3設問に回答します。「判定」「優先度」「次の対応」「主な対象」を選び、「確認した事実と根拠」にWebshellの特定根拠・復号した処理の意味・採掘疑いと再出現を記録してください。「未確認事項・引継ぎ先・次の確認」では、要求変数の書換えを実際の通信元・設置パスと混同せず、メール配達、初期侵入、採掘プロセスとの因果を未確認として引き継ぎます。', 'Answer all three case questions: the webshell URI, its absolute filesystem path, and the full Base64-decoded text. Select “Verdict”, “Priority”, “Next action”, and “Primary target”. In “Observed facts and evidence”, explain the webshell identification, the meaning of the decoded behavior, suspected mining, and recurrence. In “Unknowns, recipient, and next checks”, distinguish request-variable overrides from the observed network source and installed path; leave mail delivery, initial entry, and a causal link to the mining process unconfirmed.')
+    }),
+    answer: {
+      verdict: 'incident', priority: 'high', action: 'escalate', target: '001',
+      evidenceGroups: [['crypto-compromise-http'], ['crypto-compromise-process'], ['crypto-compromise-connection'], ['crypto-compromise-cron'], ['crypto-compromise-recurrence'], ['crypto-compromise-webpost'], ['crypto-compromise-file']],
+      documentIds: ['crypto-compromise-scope', 'crypto-compromise-change', 'crypto-compromise-webroot'],
+      facts: B(`web-01で16:03 UTCにsvc.web-labのPID 42617を採取し、高CPUと採掘向けの引数を確認した。16:04には同じPIDの外部TCP接続があり、16:12には同じ実行パスを指定する定期実行エントリを観測した。OPS-218では採掘用途の承認がなく、16:20の一時停止と16:21の不在確認後、16:28に別PID 43829で同じ実行パス・アカウント・引数の処理が再出現した。16:08のHTTP要求は200でも応答本文にPermission deniedがあり、配置や実行の成功を示さない。最初のプロセス観測より後なので、その導入経路とも断定できない。16:09には同じURI ${cryptoWebUri} へのコード処理要求を観測した。WEB-219の公開設定と16:10の読取りレビューにより、Webshell機能を持つファイルの実パスは ${cryptoWebPath} と確認できる。POST本文の復号内容は、表示抑制、要求変数の書換え、メール送信の要求、結果表示を表す非実行疑似コードだった。`,
+        `At 16:03 UTC, web-01’s snapshot showed PID 42617 running as svc.web-lab with high CPU and mining-oriented arguments. At 16:04, the same PID had an outbound TCP connection; at 16:12, a scheduled entry referenced the same executable path. OPS-218 provides no mining approval. After the temporary stop at 16:20 and absence in the 16:21 snapshot, activity with the same path, account, and arguments recurred as PID 43829 at 16:28. The 16:08 HTTP request received 200 but the response body contained Permission denied, so successful placement or execution is not established. It also followed the initial process observation and does not establish that process’s installation route. At 16:09, a code-processing request targeted the same URI, ${cryptoWebUri}. The publication settings in WEB-219 and the 16:10 read-only review establish ${cryptoWebPath} as the file with webshell capabilities. The decoded POST body is non-executable pseudocode representing suppressed displayed errors, request-variable changes, a mail request, and display of a result.`),
+      nextStep: B('Webshell機能を持つ承認外ファイル、採掘疑い、停止後の再出現を高優先度で上位担当へ引き継ぐ。プロセス・接続・定期実行・HTTP・ファイルレビュー・公開設定・作業記録を保全し、業務影響を確認して封じ込めを判断してもらう。追加のプロセス系譜、ファイル履歴、定期実行の履歴、Webアプリの認証・更新履歴、必要に応じてメール基盤の記録を調査する。初期侵入経路、HTTP操作と既存プロセスの因果関係、同一攻撃者、root権限取得、cronが再起動させたか、メール配達、採掘成果、完全復旧は未確認として残す。',
+        'Escalate the unapproved file with webshell capabilities, suspected mining, and post-stop recurrence at high priority. Preserve process, socket, scheduled-entry, HTTP, file-review, publication-setting, and operations records; request a containment decision after assessing business impact. Investigate process ancestry, file history, scheduled-task history, web-application authentication/update history, and mail-system records if needed. Leave the initial entry route, causal link between the HTTP activity and the existing process, common actor, root compromise, whether cron caused the restart, mail delivery, mining rewards, and complete recovery unconfirmed.'),
+      explanation: B('採掘疑いの判断は、採掘向け引数を持つ端末プロセス、同PIDの接続、承認外という運用情報、停止後の別PIDでの再出現を組み合わせます。HTTP200や高CPUの単独観測だけを成功の根拠にしません。Webshellの設置場所は公開設定とファイルレビューで確認します。復号内容のSCRIPT_NAMEは要求変数の書換え先であり、実際の設置パスではありません。REMOTE_ADDRの192.0.2.73も同様で、センサーが観測したHTTP接続元198.51.100.143を置き換える根拠にはなりません。メール送信を要求する内容でも配達成功は不明で、これが採掘プロセスを導入したとも分かりません。定期実行エントリは再実行の候補ですが起動元を示す証拠ではなく、プロセスが一度消えたことも駆除完了を意味しません。',
+        'The mining assessment combines the endpoint process with mining-oriented arguments, its same-PID connection, the lack of operational approval, and recurrence under another PID after a stop. HTTP 200 or high CPU alone is insufficient. Establish the webshell location using the publication mapping and file review. SCRIPT_NAME in the decoded text is a request-variable override, not the installed path. Likewise, its REMOTE_ADDR value 192.0.2.73 does not replace the HTTP source 198.51.100.143 observed by the sensor. A mail request does not establish successful delivery or installation of the mining process. The scheduled entry is a possible restart mechanism, not proof of the launcher, and a process disappearing once does not establish eradication.')
+    }
+  });
+
+  const cases = [tutorial, auth, admin, service, gap, mixed, fim, crypto];
   return { version: 'wazuhroom-1', referenceVersion: '4.14', cases, agents: copy(tutorial.agents) };
 }));
 
@@ -409,6 +506,8 @@
 
   const UNSAFE = new Set(['__proto__', 'prototype', 'constructor']);
   const MAX_QUERY = 2000;
+  const ORIGINAL_CASE_IDS = Object.freeze(['tutorial', 'auth-chain', 'approved-admin', 'service-persistence', 'collection-gap', 'mixed-auth', 'fim-change']);
+  const ADDED_CASE_ID = 'crypto-compromise';
   const STEPS = ['events', 'range', 'search', 'detail', 'evidence', 'document', 'report'];
   const VIEWS = ['overview', 'agents', 'events', 'fim'];
   const CHOICES = {
@@ -430,6 +529,14 @@
     'data.srcuser': 'keyword', 'data.dstuser': 'keyword', 'data.user': 'keyword',
     'data.action': 'keyword', 'data.status': 'keyword', 'data.lastKeepAlive': 'keyword',
     'data.service': 'keyword', 'data.path': 'keyword', 'data.sha256': 'keyword', 'data.command': 'text',
+    'data.schedule': 'keyword',
+    'data.process.pid': 'number', 'data.process.ppid': 'number', 'data.process.name': 'keyword',
+    'data.process.cmd': 'keyword', 'data.process.args': 'text', 'data.process.euser': 'keyword',
+    'data.process.cpu_pct': 'number', 'data.process.start_time': 'keyword',
+    'data.http.method': 'keyword', 'data.http.status_code': 'number', 'data.http.host': 'keyword',
+    'data.http.uri': 'keyword', 'data.http.request_id': 'keyword', 'data.http.upload_name': 'keyword',
+    'data.http.body_summary': 'text', 'data.http.response_summary': 'text',
+    'data.artifact.encoding': 'keyword', 'data.artifact.encoded_content': 'text', 'data.artifact.content_summary': 'text',
     'data.win.system.eventID': 'keyword', 'data.win.system.providerName': 'keyword',
     'data.win.system.computer': 'keyword', 'data.win.system.channel': 'keyword',
     'data.win.eventdata.subjectUserName': 'keyword', 'data.win.eventdata.targetUserName': 'keyword',
@@ -462,6 +569,44 @@
     if (typeof value !== 'string' || value.length > maximum) fail('Invalid ' + label + '.');
     return value;
   }
+  function decodeBase64Text(input) {
+    scalarString(input, 'Base64 input', 4096);
+    const source = input.replace(/[\t\n\r\f ]/g, '');
+    if (!source || source.length % 4 !== 0 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(source)) fail('Invalid standard Base64 text or padding.');
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    const padding = source.endsWith('==') ? 2 : source.endsWith('=') ? 1 : 0;
+    if ((padding === 2 && (alphabet.indexOf(source[source.length - 3]) & 15) !== 0) || (padding === 1 && (alphabet.indexOf(source[source.length - 2]) & 3) !== 0)) fail('Invalid non-canonical Base64 padding bits.');
+    const bytes = [];
+    for (let i = 0; i < source.length; i += 4) {
+      const a = alphabet.indexOf(source[i]), b = alphabet.indexOf(source[i + 1]);
+      const c = source[i + 2] === '=' ? 0 : alphabet.indexOf(source[i + 2]);
+      const d = source[i + 3] === '=' ? 0 : alphabet.indexOf(source[i + 3]);
+      bytes.push((a << 2) | (b >> 4));
+      if (source[i + 2] !== '=') bytes.push(((b & 15) << 4) | (c >> 2));
+      if (source[i + 3] !== '=') bytes.push(((c & 3) << 6) | d);
+    }
+    let decoded;
+    try { decoded = decodeURIComponent(bytes.map(byte => '%' + byte.toString(16).padStart(2, '0')).join('')); }
+    catch (_) { fail('Decoded bytes are not valid UTF-8 text.'); }
+    if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(decoded)) fail('Decoded bytes contain unsupported control characters.');
+    return decoded;
+  }
+  function caseRevision(item) {
+    const revision = item.revision === undefined ? 1 : item.revision;
+    if (!Number.isInteger(revision) || revision < 1) fail('Invalid authored case revision.');
+    return revision;
+  }
+  function questionsFor(item) {
+    const questions = item.questions === undefined ? [] : item.questions;
+    if (!Array.isArray(questions) || questions.length > 8 || new Set(questions.map(question => question?.id)).size !== questions.length) fail('Invalid authored questions.');
+    for (const question of questions) {
+      if (!plain(question) || typeof question.id !== 'string' || !/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(question.id) || UNSAFE.has(question.id) || !Array.isArray(question.acceptedAnswers) || !question.acceptedAnswers.length || question.acceptedAnswers.length > 8 || question.acceptedAnswers.some(value => typeof value !== 'string' || !value.trim() || value.length > 4096)) fail('Invalid authored question.');
+    }
+    if (questions.length && caseRevision(item) < 2) fail('Question cases require a revision marker.');
+    return questions;
+  }
+  function blankAnswers(item) { return Object.fromEntries(questionsFor(item).map(question => [question.id, ''])); }
+  function normalizeAnswer(value, question) { return (question.multiline === true ? value.replace(/\r\n?/g, '\n') : value).trim(); }
   function tokenize(query) {
     scalarString(query, 'query');
     const tokens = [];
@@ -653,6 +798,11 @@
     for (const item of content.cases) {
       if (UNSAFE.has(item.id) || own(records, item.id)) fail('Invalid or duplicate case ID.');
       records[item.id] = { query: '', filters: [], from: item.timeRange.from, to: item.timeRange.to, view: 'overview', evidence: [], documents: [], operations: [], report: { verdict: '', priority: '', action: '', target: '', facts: '', nextStep: '' }, completed: false, feedback: null, hint: 0, expanded: null };
+      questionsFor(item);
+      if (caseRevision(item) > 1) {
+        records[item.id].caseRevision = caseRevision(item);
+        records[item.id].report.answers = blankAnswers(item);
+      }
     }
     return { format: 'wazuhroom-save', version: 1, dataset: content.version, language: 'ja', activeCaseId: content.cases[0].id, records };
   }
@@ -674,6 +824,10 @@
       { key: 'facts', passed: prose(report.facts) },
       { key: 'nextStep', passed: prose(report.nextStep) }
     ];
+    for (const question of questionsFor(caseData)) {
+      const response = report.answers?.[question.id];
+      checks.push({ key: 'question:' + question.id, passed: typeof response === 'string' && response.length <= 4096 && question.acceptedAnswers.some(answer => normalizeAnswer(response, question) === normalizeAnswer(answer, question)) });
+    }
     return { passed: checks.every(check => check.passed), checks };
   }
   function safeTree(value, seen = new Set(), depth = 0, budget = { count: 0 }) {
@@ -695,9 +849,42 @@
     if (!Array.isArray(value) || value.length > maximum || value.some(id => typeof id !== 'string' || !allowed.has(id)) || new Set(value).size !== value.length) fail('Invalid ' + label + '.');
     return value.slice();
   }
+  function validateReport(raw, item, legacy = false) {
+    const keys = ['verdict', 'priority', 'action', 'target', 'facts', 'nextStep'];
+    const revised = caseRevision(item) > 1 && !legacy;
+    if (revised) keys.push('answers');
+    exactKeys(raw, keys, keys, 'report');
+    for (const key of Object.keys(CHOICES)) if (!CHOICES[key].includes(raw[key])) fail('Invalid report choice.');
+    if (raw.target !== '' && !item.agents.some(agent => agent.id === raw.target)) fail('Invalid report target.');
+    scalarString(raw.facts, 'facts', 4000);
+    scalarString(raw.nextStep, 'next step', 4000);
+    const result = { ...raw };
+    if (revised) {
+      const ids = questionsFor(item).map(question => question.id);
+      exactKeys(raw.answers, ids, ids, 'investigation answers');
+      result.answers = {};
+      for (const id of ids) result.answers[id] = scalarString(raw.answers[id], 'investigation answer', 4096);
+    }
+    return result;
+  }
+  function previousSubmission(record) {
+    const { answers, ...report } = record.report;
+    return { caseRevision: 1, report, evidence: record.evidence.slice(), documents: record.documents.slice() };
+  }
+  function validatePreviousSubmission(raw, item) {
+    const keys = ['caseRevision', 'report', 'evidence', 'documents'];
+    exactKeys(raw, keys, keys, 'previous submission');
+    if (item.id !== ADDED_CASE_ID || caseRevision(item) !== 2 || raw.caseRevision !== 1) fail('Unsupported previous submission revision.');
+    const eventIds = new Set(item.events.map(event => event.id)), documentIds = new Set(item.documents.map(document => document.id));
+    return { caseRevision: 1, report: validateReport(raw.report, item, true), evidence: idList(raw.evidence, eventIds, eventIds.size, 'previous evidence'), documents: idList(raw.documents, documentIds, documentIds.size, 'previous documents') };
+  }
   function validateRecord(raw, item, snapshot = false) {
     const required = ['query', 'filters', 'from', 'to', 'view', 'evidence', 'documents', 'operations', 'report', 'completed', 'feedback', 'hint', 'expanded'];
-    exactKeys(raw, [...required, 'completion'], required, 'record');
+    const revised = caseRevision(item) > 1;
+    exactKeys(raw, [...required, 'completion', ...(revised ? ['caseRevision', 'previousSubmission'] : [])], required, 'record');
+    const legacy = item.id === ADDED_CASE_ID && caseRevision(item) === 2 && !own(raw, 'caseRevision') && plain(raw.report) && !own(raw.report, 'answers');
+    if (revised && !legacy && raw.caseRevision !== caseRevision(item)) fail('Unsupported saved case revision.');
+    if (legacy && own(raw, 'previousSubmission')) fail('A legacy record cannot contain a migrated previous submission.');
     if (snapshot && own(raw, 'completion') && raw.completion !== null) fail('Nested completion snapshots are invalid.');
     scalarString(raw.query, 'query');
     if (!Array.isArray(raw.filters) || raw.filters.length > 30) fail('Invalid saved filters.');
@@ -705,22 +892,28 @@
     // A saved search must be executable: invalid or unsupported queries are never imported silently.
     search([], { query: raw.query, filters, from: raw.from, to: raw.to, module: 'events' });
     if (!VIEWS.includes(raw.view) || typeof raw.completed !== 'boolean' || !Number.isInteger(raw.hint) || raw.hint < 0 || raw.hint > 3) fail('Invalid saved view, completion or hint.');
-    const eventIds = new Set(item.events.map(event => event.id)), documentIds = new Set(item.documents.map(document => document.id)), agentIds = new Set(item.agents.map(agent => agent.id));
+    const eventIds = new Set(item.events.map(event => event.id)), documentIds = new Set(item.documents.map(document => document.id));
     if (raw.expanded !== null && !eventIds.has(raw.expanded)) fail('Invalid expanded event.');
-    const reportKeys = ['verdict', 'priority', 'action', 'target', 'facts', 'nextStep'];
-    exactKeys(raw.report, reportKeys, reportKeys, 'report');
-    for (const key of Object.keys(CHOICES)) if (!CHOICES[key].includes(raw.report[key])) fail('Invalid report choice.');
-    if (raw.report.target !== '' && !agentIds.has(raw.report.target)) fail('Invalid report target.');
-    scalarString(raw.report.facts, 'facts', 4000);
-    scalarString(raw.report.nextStep, 'next step', 4000);
+    const report = validateReport(raw.report, item, legacy);
+    if (legacy) report.answers = blankAnswers(item);
     if (raw.feedback !== null && !plain(raw.feedback)) fail('Invalid feedback.');
     const result = {
       query: raw.query, filters, from: raw.from, to: raw.to, view: raw.view,
       evidence: idList(raw.evidence, eventIds, eventIds.size, 'evidence'),
       documents: idList(raw.documents, documentIds, documentIds.size, 'documents'),
       operations: idList(raw.operations, new Set(STEPS), STEPS.length, 'operations'),
-      report: { ...raw.report }, completed: false, feedback: null, hint: raw.hint, expanded: raw.expanded
+      report, completed: false, feedback: null, hint: raw.hint, expanded: raw.expanded
     };
+    if (revised) result.caseRevision = caseRevision(item);
+    if (legacy) {
+      if (!snapshot && raw.completion !== undefined && raw.completion !== null) {
+        if (!plain(raw.completion) || own(raw.completion, 'caseRevision') || (plain(raw.completion.report) && own(raw.completion.report, 'answers'))) fail('Invalid legacy completion revision.');
+        result.previousSubmission = previousSubmission(validateRecord(raw.completion, item, true));
+      } else if (!snapshot && raw.completed) result.previousSubmission = previousSubmission(result);
+      if (raw.feedback !== null) result.feedback = assess(item, result);
+      return result;
+    }
+    if (own(raw, 'previousSubmission')) result.previousSubmission = validatePreviousSubmission(raw.previousSubmission, item);
     if (!snapshot && raw.completion !== undefined && raw.completion !== null) {
       const completion = validateRecord(raw.completion, item, true);
       if (!assess(item, completion).passed) fail('Completion snapshot does not pass assessment.');
@@ -744,12 +937,19 @@
     if (!['ja', 'en'].includes(input.language)) fail('Invalid saved language.');
     const caseIds = content.cases.map(item => item.id);
     if (!caseIds.includes(input.activeCaseId)) fail('Invalid active case.');
-    exactKeys(input.records, caseIds, caseIds, 'records');
+    // The eighth case is an additive release. Only a complete original seven-case save
+    // may omit it; missing original records and unknown records still indicate bad input.
+    const additiveRelease = caseIds.length === ORIGINAL_CASE_IDS.length + 1 && caseIds.includes(ADDED_CASE_ID) && ORIGINAL_CASE_IDS.every(id => caseIds.includes(id));
+    exactKeys(input.records, caseIds, additiveRelease ? ORIGINAL_CASE_IDS : caseIds, 'records');
+    if (!own(input.records, input.activeCaseId)) fail('The active case is missing from the save.');
+    const defaults = additiveRelease && !own(input.records, ADDED_CASE_ID) ? createProgress(content) : null;
     const records = {};
-    for (const item of content.cases) records[item.id] = validateRecord(input.records[item.id], item);
+    for (const item of content.cases) records[item.id] = own(input.records, item.id)
+      ? validateRecord(input.records[item.id], item)
+      : defaults.records[item.id];
     return { format: 'wazuhroom-save', version: 1, dataset: content.version, language: input.language, activeCaseId: input.activeCaseId, records };
   }
-  return Object.freeze({ get, search, searchAgents, createProgress, assess, validateProgress, FIELD_TYPES, AGENT_TYPES });
+  return Object.freeze({ get, search, searchAgents, decodeBase64Text, createProgress, assess, validateProgress, FIELD_TYPES, AGENT_TYPES });
 }));
 
 ;
@@ -767,7 +967,7 @@
     home:['演習一覧','Exercises'],save:['保存','Save'],load:['読込','Load'],help:['使い方','Help'],close:['閉じる','Close'],cancel:['キャンセル','Cancel'],apply:['適用','Apply'],clear:['解除','Clear'],start:['始める','Start'],resume:['続きから','Continue'],review:['復習する','Review'],completed:['完了','Complete'],notStarted:['未開始','Not started'],progress:['学習の進み具合','Your progress'],
     tutorial:['操作チュートリアル','Interface tutorial'],guided:['ガイド付き調査','Guided investigation'],checklist:['チェックリスト調査','Checklist investigation'],independent:['自力で調査','Independent investigation'],
     workflow:['SOCの基本フロー','The SOC workflow'],triage:['アラート確認','Triage'],investigate:['調査','Investigate'],decide:['判断','Decide'],report:['報告','Report'],
-    homeNote:['全7件・時間制限なし。どの演習からでも始められます。ヒントによる減点はありません。','7 exercises, no time limits. Start anywhere. Hints do not reduce your score.'],
+    homeNote:['全{count}件・時間制限なし。どの演習からでも始められます。ヒントによる減点はありません。','{count} exercises, no time limits. Start anywhere. Hints do not reduce your score.'],
     limit:['Wazuh 4.14系の画面・用語を参考にした独自教材です。実際のWazuhや端末には接続しません。画面と検索は学習用の範囲に限定しており、実機との完全な一致は保証しません。','An original educational simulation based on Wazuh 4.14 interface concepts. It does not connect to Wazuh or real endpoints. Screens and search support a teaching subset, not complete product compatibility.'],
     synthetic:['合成ログ・教材用カスタムルール・演習時刻はUTC','Synthetic logs · Custom teaching rules · Exercise time: UTC'],
     optional:['roomシリーズの任意教材です。メインの学習順には含めません。','An optional room-series project, outside the main learning path.'],
@@ -798,7 +998,12 @@
     verdict:['判定','Verdict'],priority:['優先度','Priority'],action:['次の対応','Next action'],target:['主な対象','Primary target'],select:['選択してください','Choose an option'],
     incident:['インシデント','Incident'],benign:['正当な活動','Benign activity'],unknown:['判断保留','Insufficient evidence'],high:['高','High'],medium:['中','Medium'],low:['低','Low'],escalate:['担当へエスカレーション','Escalate to the responsible team'],monitor:['監視を継続','Continue monitoring'],verify:['追加確認を依頼','Request verification'],
     facts:['確認した事実と根拠','Observed facts and evidence'],nextStep:['未確認事項・引継ぎ先・次の確認','Unknowns, recipient, and next checks'],factsPlaceholder:['対象・時刻・証拠IDを挙げて、分かったことを記録します。','Record findings with the target, time, and evidence IDs.'],nextPlaceholder:['分からないこと、誰に何を確認してもらうかを書きます。','State unknowns and who should check what next.'],
-    structural:['自由記述は10〜4000文字で、文字数のみ確認します。意味・正確さは自動採点しません。提出後に報告例と比較してください。','Free text requires 10–4,000 characters and is checked for length only, not meaning or accuracy. Compare your writing with the example after submission.'],
+    structural:['事実と次の確認を書く2つの報告欄は10〜4000文字で、文字数のみ確認します。意味・正確さは自動採点しません。提出後に報告例と比較してください。','The two narrative report fields require 10–4,000 characters and are checked for length only, not meaning or accuracy. Compare your writing with the example after submission.'],
+    findings:['調査で特定した値','Investigation findings'],findingsNote:['以下の値は正答と照合します。URLとサーバー内のパスを区別し、復号したテキストはそのまま記入してください。前後の空白は無視します。','These values are checked against the answers. Distinguish the URL from the server path, and enter the decoded text as written. Leading and trailing whitespace is ignored.'],
+    decodeTool:['Base64を調べる','Inspect Base64'],decodeNote:['Wazuhroomの学習補助ツールです。標準Base64をUTF-8のテキストに復号します。通信やコード実行は行いません。結果を読んで、報告欄へ自分で記入してください。','A Wazuhroom learning aid. Decode standard Base64 into UTF-8 text, entirely offline, without executing code. Read the result and enter your findings in the report.'],
+    encodedInput:['Base64文字列（最大4096文字）','Base64 string (maximum 4,096 characters)'],decode:['テキストに復号','Decode as text'],decodedOutput:['復号したテキスト','Decoded text'],decodeError:['復号できません。標準Base64の文字・長さ・末尾の = と、UTF-8のテキストであることを確認してください。','Unable to decode. Check standard Base64 characters, length, trailing = padding, and that the decoded data is UTF-8 text.'],
+    revisedCase:['この演習にはWebシェルとBase64の設問が追加されました。以前の調査メモは保持しています。追加項目を調べて、もう一度提出してください。','Webshell and Base64 questions have been added to this exercise. Your earlier investigation notes have been retained. Investigate the new requirements and submit again.'],
+    previousReport:['改訂前の提出内容（現行版では未採点）','Previous submission (not assessed against the revision)'],
     submit:['調査報告を提出','Submit investigation report'],passed:['調査を完了しました','Investigation complete'],tryAgain:['確認が必要な項目があります','Some items need another look'],
     evidenceLimit:['証拠を絞る','Focused evidence selection'],documents:['必要な資料の確認','Required references'],operations:['調査操作の実施','Investigation operations'],
     result:['提出結果','Submission result'],model:['報告例と振り返り','Example report and reflection'],showModel:['報告例を開く','Open example report'],modelNote:['自分の報告と比べ、事実・推測・未確認事項を区別してください。','Compare your report, distinguishing facts, inferences, and unknowns.'],exportReport:['報告を書き出す','Export report'],nextCase:['次の演習へ','Next exercise'],
@@ -821,6 +1026,7 @@
   };
   let progress = E.createProgress(C), home = true, tab = 'task', page = 0, agentQuery = '', agentDraft = '', queryDraft = '', fromDraft = '', toDraft = '', searchError = '', modelOpen = false, columnsOpen = false;
   const detailOpen = {};
+  const decoderDrafts = {};
   let cols = ['timestamp','agent.name','rule.description','rule.level','rule.id'];
   let noticeTimer, pendingImport = null, importBackedUp = false, startupWarning = '', storageBlocked = false;
   const esc = value => String(value == null ? '' : value).replace(/[&<>"']/g, x => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
@@ -852,13 +1058,14 @@
     const f=document.getElementById('range-from'),z=document.getElementById('range-to');if(f)fromDraft=f.value;if(z)toDraft=z.value;
     document.querySelectorAll('[data-detail-key]').forEach(el=>{detailOpen[el.dataset.detailKey]=el.open;});
     document.querySelectorAll('[data-report]').forEach(el=>{record().report[el.dataset.report]=el.value;});
+    document.querySelectorAll('[data-answer]').forEach(el=>{record().report.answers[el.dataset.answer]=el.value;});
   }
   function header() {
     return `<header class="topbar">${btn('home','', 'brand', 'aria-label="Wazuhroom"').replace('</button>', '<span class="brand-icon" aria-hidden="true">W</span><span><strong>Wazuhroom</strong><br><span class="version">v'+esc(document.body.dataset.version)+' · '+esc(t('simulation'))+'</span></span></button>')}<div class="top-actions"><label for="language" class="sr-only" hidden>Language</label><select id="language" aria-label="Language"><option value="ja" ${progress.language==='ja'?'selected':''}>日本語</option><option value="en" ${progress.language==='en'?'selected':''}>English</option></select>${btn('save',t('save'),'small')}${btn('load',t('load'),'small')}${btn('help',t('help'),'small')}</div></header>`;
   }
   function renderHome() {
     const count=completedCount();
-    return `<main class="home" id="main" tabindex="-1"><section class="hero"><div><div class="eyebrow">WAZUHROOM / SOC WORKFLOW LAB</div><h1>${esc(t('concept'))}</h1><p>${esc(t('intro'))}</p><div class="flow"><span class="tag blue">${esc(t('offline'))}</span><span class="tag">日本語 / English</span><span class="tag">${esc(t('noTimer'))}</span></div></div><aside class="hero-note"><strong>${esc(t('workflow'))}</strong><div class="flow"><span>01 ${esc(t('triage'))}</span>→<span>02 ${esc(t('investigate'))}</span>→<span>03 ${esc(t('decide'))}</span>→<span>04 ${esc(t('report'))}</span></div></aside></section><div class="section-line"><h2>${esc(t('exercise'))}</h2><span class="muted">${esc(t('progress'))} <strong>${count} / ${C.cases.length}</strong></span></div><div class="progressline" role="progressbar" aria-label="${esc(t('progress'))}" aria-valuenow="${count}" aria-valuemax="${C.cases.length}" aria-valuemin="0"><i style="width:${count/C.cases.length*100}%"></i></div><p class="footer-note">${esc(t('homeNote'))}</p>${count===C.cases.length?`<div class="success">${esc(t('completedAll'))}</div>`:''}<div class="case-grid">${C.cases.map((c,i)=>{const r=progress.records[c.id],begun=r.operations.length>0;return `<article class="case-card ${c.stage==='tutorial'?'tutorial':''}"><div><div class="card-meta"><span class="tag ${c.stage==='tutorial'?'blue':''}">${String(i).padStart(2,'0')} · ${esc(t(c.stage))}</span>${r.completed?`<span class="tag green">✓ ${esc(t('completed'))}</span>`:''}</div><h3>${esc(tx(c.title))}</h3><p>${esc(tx(c.brief))}</p></div>${btn('case',t(r.completed?'review':begun?'resume':'start'),'primary',`data-id="${esc(c.id)}"`)}</article>`;}).join('')}</div><footer class="home-footer"><p>${esc(t('limit'))}</p><p>${esc(t('optional'))}</p><p>${esc(t('trademark'))}</p><a href="https://github.com/retiacole/wazuhroom" target="_blank" rel="noopener">${esc(t('source'))}</a><a href="https://github.com/retiacole/wazuhroom/blob/main/wazuhroom.html" target="_blank" rel="noopener">${esc(t('download'))}</a><p class="footer-note">Created with AI assistance from OpenAI Codex. · MIT License</p></footer></main>`;
+    return `<main class="home" id="main" tabindex="-1"><section class="hero"><div><div class="eyebrow">WAZUHROOM / SOC WORKFLOW LAB</div><h1>${esc(t('concept'))}</h1><p>${esc(t('intro'))}</p><div class="flow"><span class="tag blue">${esc(t('offline'))}</span><span class="tag">日本語 / English</span><span class="tag">${esc(t('noTimer'))}</span></div></div><aside class="hero-note"><strong>${esc(t('workflow'))}</strong><div class="flow"><span>01 ${esc(t('triage'))}</span>→<span>02 ${esc(t('investigate'))}</span>→<span>03 ${esc(t('decide'))}</span>→<span>04 ${esc(t('report'))}</span></div></aside></section><div class="section-line"><h2>${esc(t('exercise'))}</h2><span class="muted">${esc(t('progress'))} <strong>${count} / ${C.cases.length}</strong></span></div><div class="progressline" role="progressbar" aria-label="${esc(t('progress'))}" aria-valuenow="${count}" aria-valuemax="${C.cases.length}" aria-valuemin="0"><i style="width:${count/C.cases.length*100}%"></i></div><p class="footer-note">${esc(t('homeNote').replace('{count}', C.cases.length))}</p>${count===C.cases.length?`<div class="success">${esc(t('completedAll'))}</div>`:''}<div class="case-grid">${C.cases.map((c,i)=>{const r=progress.records[c.id],begun=r.operations.length>0;return `<article class="case-card ${c.stage==='tutorial'?'tutorial':''}"><div><div class="card-meta"><span class="tag ${c.stage==='tutorial'?'blue':''}">${String(i).padStart(2,'0')} · ${esc(t(c.stage))}</span>${r.completed?`<span class="tag green">✓ ${esc(t('completed'))}</span>`:''}</div><h3>${esc(tx(c.title))}</h3><p>${esc(tx(c.brief))}</p></div>${btn('case',t(r.completed?'review':begun?'resume':'start'),'primary',`data-id="${esc(c.id)}"`)}</article>`;}).join('')}</div><footer class="home-footer"><p>${esc(t('limit'))}</p><p>${esc(t('optional'))}</p><p>${esc(t('trademark'))}</p><a href="https://github.com/retiacole/wazuhroom" target="_blank" rel="noopener">${esc(t('source'))}</a><a href="https://github.com/retiacole/wazuhroom/blob/main/wazuhroom.html" target="_blank" rel="noopener">${esc(t('download'))}</a><p class="footer-note">Created with AI assistance from OpenAI Codex. · MIT License</p></footer></main>`;
   }
   const viewNames={overview:'Overview',agents:'Endpoints',events:'Threat Hunting',fim:'File Integrity Monitoring'};
   function renderLab() {
@@ -887,7 +1094,7 @@
   }
   function detailHtml(e) {
     const has=record().evidence.includes(e.id);
-    return `<div class="event-detail"><div class="detail-tabs"><h3>${esc(t('details'))} <code>${esc(e.id)}</code></h3>${btn('evidence-add',t(has?'added':'addEvidence'),has?'small':'primary small',`data-id="${esc(e.id)}" ${has?'disabled':''}`)}</div><div class="fields">${fieldRows(e)}</div><details data-detail-key="${esc(e.id)}:json" ${detailOpen[e.id+':json']?'open':''}><summary>JSON</summary><pre>${esc(JSON.stringify(e,null,2))}</pre></details><details data-detail-key="${esc(e.id)}:raw" ${detailOpen[e.id+':raw']?'open':''}><summary>${esc(t('original'))} · full_log</summary><pre>${esc(e.full_log)}</pre></details></div>`;
+    return `<div class="event-detail"><div class="detail-tabs"><h3>${esc(t('details'))} <code>${esc(e.id)}</code></h3>${btn('evidence-add',t(has?'added':'addEvidence'),has?'small':'primary small',`data-id="${esc(e.id)}" ${has?'disabled':''}`)}${e.data.artifact?.encoded_content?btn('decode-event',t('decodeTool'),'small',`data-id="${esc(e.id)}"`):''}</div><div class="fields">${fieldRows(e)}</div><details data-detail-key="${esc(e.id)}:json" ${detailOpen[e.id+':json']?'open':''}><summary>JSON</summary><pre>${esc(JSON.stringify(e,null,2))}</pre></details><details data-detail-key="${esc(e.id)}:raw" ${detailOpen[e.id+':raw']?'open':''}><summary>${esc(t('original'))} · full_log</summary><pre>${esc(e.full_log)}</pre></details></div>`;
   }
   function renderEvents() {
     const c=active(),r=record(),events=filtered().sort((a,b)=>b.timestamp.localeCompare(a.timestamp)||a.id.localeCompare(b.id));
@@ -900,6 +1107,24 @@
   function renderCoach() {
     const c=active(),r=record();return `<aside class="coach" id="learning-panel" aria-label="${esc(t('training'))}"><div class="coach-header"><div class="eyebrow">${esc(t('training'))} / ${esc(t(c.stage))}</div><h2>${esc(tx(c.title))}</h2><div class="progressline"><i style="width:${(c.steps.filter(s=>s.kind==='report'?r.completed:r.operations.includes(s.kind)).length/c.steps.length)*100}%"></i></div></div><nav class="coach-tabs" aria-label="${esc(t('training'))}">${['task','refs','report'].map(x=>btn('coach-tab',t(x),tab===x?'active':'',`data-tab="${x}" aria-current="${tab===x?'page':'false'}"`)).join('')}</nav><div class="coach-body">${tab==='task'?renderTask():tab==='refs'?renderRefs():renderReport()}</div></aside>`;
   }
+  function questionLabel(key) {
+    return key.startsWith('question:') ? tx(active().questions?.find(q=>q.id===key.slice(9))?.label) : t(key);
+  }
+  function decoderButton() { return active().questions?.length ? btn('open-decoder',t('decodeTool'),'small') : ''; }
+  function renderQuestions() {
+    const c=active(),r=record();
+    if(!c.questions?.length)return '';
+    return `<section class="investigation-findings"><h3>${esc(t('findings'))}</h3><p class="footer-note">${esc(t('findingsNote'))}</p>${c.questions.map(q=>`<div class="report-field"><label for="answer-${esc(q.id)}">${esc(tx(q.label))}</label><p class="footer-note" id="answer-help-${esc(q.id)}">${esc(tx(q.prompt))}</p>${q.multiline?`<textarea id="answer-${esc(q.id)}" data-answer="${esc(q.id)}" aria-describedby="answer-help-${esc(q.id)}" maxlength="4096" spellcheck="false">${esc(r.report.answers?.[q.id]||'')}</textarea>`:`<input id="answer-${esc(q.id)}" data-answer="${esc(q.id)}" aria-describedby="answer-help-${esc(q.id)}" maxlength="4096" autocomplete="off" spellcheck="false" value="${esc(r.report.answers?.[q.id]||'')}">`}</div>`).join('')}${decoderButton()}</section>`;
+  }
+  function renderPreviousSubmission() {
+    const old=record().previousSubmission;if(!old)return '';
+    return `<details class="footer-note previous-submission"><summary>${esc(t('previousReport'))}</summary><p>${['verdict','priority','action'].map(k=>esc(t(k))+': '+esc(t(old.report[k]||'select'))).join('<br>')}<br>${esc(t('target'))}: ${esc(old.report.target)}</p><p>${esc(t('evidence'))}: ${esc(old.evidence.join(', '))}</p><p>${esc(t('documents'))}: ${esc(old.documents.join(', '))}</p><h3>${esc(t('facts'))}</h3><p>${esc(old.report.facts)}</p><h3>${esc(t('nextStep'))}</h3><p>${esc(old.report.nextStep)}</p></details>`;
+  }
+  function openDecoder(encoded) {
+    if(typeof encoded==='string')decoderDrafts[active().id]={input:encoded,output:'',error:false};
+    const draft=decoderDrafts[active().id]||{input:'',output:'',error:false};
+    modal(t('decodeTool'),`<p>${esc(t('decodeNote'))}</p><form id="base64-form"><label for="base64-input">${esc(t('encodedInput'))}</label><textarea id="base64-input" maxlength="4096" spellcheck="false" autocomplete="off">${esc(draft.input)}</textarea><div class="dialog-actions"><button type="submit" class="primary">${esc(t('decode'))}</button></div></form><div aria-live="polite"><p id="base64-error" class="error" ${draft.error?'':'hidden'}>${esc(t('decodeError'))}</p><h3>${esc(t('decodedOutput'))}</h3><pre id="base64-output">${esc(draft.output)}</pre></div>`);
+  }
   function renderTask() {
     const c=active(),r=record(),first=c.steps.find(s=>s.kind==='report'?!r.completed:!r.operations.includes(s.kind));
     const guided=c.stage==='tutorial'||c.stage==='guided';
@@ -910,7 +1135,7 @@
         : `<details class="step-instruction"><summary>${esc(t('stepInstruction'))}</summary><p>${esc(tx(s.body))}</p></details>`;
       return `<li class="${done?'done':current?'current':''}"><span class="step-number">${done?'✓':i+1}</span><div><strong>${esc(tx(s.title))}</strong>${instruction}</div></li>`;
     }).join('');
-    return `<p>${esc(tx(c.brief))}</p><ul class="inline-list">${c.objectives.map(o=>`<li>${esc(tx(o))}</li>`).join('')}</ul><ol class="steps">${steps}</ol><p class="footer-note">${esc(t('checkNote'))}</p>${r.hint?`<div class="step-help"><strong>${esc(t('hint'))} ${r.hint}/3</strong><p>${esc(tx(c.hints[r.hint-1]))}</p></div>`:''}${r.hint<3?btn('hint',t(r.hint?'nextHint':'hint'),'small'): `<p class="muted">${esc(t('noHints'))}</p>`}<details class="footer-note"><summary>${esc(t('selfStudyPolicy'))}</summary><p>${esc(t('selfStudy'))}</p></details><div style="margin-top:16px">${btn('coach-tab',t('openReport'),'primary small','data-tab="report"')}</div>`;
+    return `${r.previousSubmission&&!r.completed?`<p class="step-help">${esc(t('revisedCase'))}</p>`:''}<p>${esc(tx(c.brief))}</p>${decoderButton()}<ul class="inline-list">${c.objectives.map(o=>`<li>${esc(tx(o))}</li>`).join('')}</ul><ol class="steps">${steps}</ol><p class="footer-note">${esc(t('checkNote'))}</p>${r.hint?`<div class="step-help"><strong>${esc(t('hint'))} ${r.hint}/3</strong><p>${esc(tx(c.hints[r.hint-1]))}</p></div>`:''}${r.hint<3?btn('hint',t(r.hint?'nextHint':'hint'),'small'): `<p class="muted">${esc(t('noHints'))}</p>`}<details class="footer-note"><summary>${esc(t('selfStudyPolicy'))}</summary><p>${esc(t('selfStudy'))}</p></details><div style="margin-top:16px">${btn('coach-tab',t('openReport'),'primary small','data-tab="report"')}</div>`;
   }
   function renderRefs() {
     const c=active(),r=record();
@@ -921,7 +1146,7 @@
     const c=active(),r=record(),a=r.report;
     const countLabel=t('evidenceCount').replace('{count}',r.evidence.length).replace('{limit}',c.answer.evidenceGroups.length+2);
     const missingDocs=c.documents.filter(d=>c.answer.documentIds.includes(d.id)&&!r.documents.includes(d.id));
-    return `<h3>${esc(t('evidence'))} <span class="muted">${esc(countLabel)}</span></h3><p class="footer-note">${esc(t('evidenceNote'))}</p><div id="evidence-list">${r.evidence.length?r.evidence.map(id=>{const e=c.events.find(x=>x.id===id);return `<div class="evidence-item"><span><code>${esc(id)}</code><br>${esc(e.rule.description)}</span>${btn('evidence-remove','×','small',`data-id="${esc(id)}" aria-label="${esc(t('remove')+' '+id)}"`)}</div>`;}).join(''):`<p class="muted">${esc(t('noEvidence'))}</p>`}</div><form id="report-form" style="margin-top:18px"><div class="report-grid">${[['verdict',['incident','benign','unknown']],['priority',['high','medium','low']],['action',['escalate','monitor','verify']]].map(([key,choices])=>`<div><label for="report-${key}">${esc(t(key))}</label><select id="report-${key}" data-report="${key}">${options(choices,a[key])}</select></div>`).join('')}<div><label for="report-target">${esc(t('target'))}</label><select id="report-target" data-report="target"><option value="">${esc(t('select'))}</option>${c.agents.map(x=>`<option value="${esc(x.id)}" ${a.target===x.id?'selected':''}>${esc(x.name)} (${esc(x.id)})</option>`).join('')}</select></div></div><div class="report-field"><label for="report-facts">${esc(t('facts'))}</label><textarea id="report-facts" data-report="facts" maxlength="4000" placeholder="${esc(t('factsPlaceholder'))}">${esc(a.facts)}</textarea></div><div class="report-field"><label for="report-nextStep">${esc(t('nextStep'))}</label><textarea id="report-nextStep" data-report="nextStep" maxlength="4000" placeholder="${esc(t('nextPlaceholder'))}">${esc(a.nextStep)}</textarea></div><p class="footer-note">${esc(t('structural'))}</p><button type="submit" class="primary">${esc(t('submit'))}</button></form>${r.feedback?`<div class="review"><h3>${esc(t(r.feedback.passed?'passed':'tryAgain'))}</h3><ul class="checks">${r.feedback.checks.map(x=>`<li class="${x.passed?'yes':'no'}">${x.passed?'✓':'○'} ${esc(t(x.key))}</li>`).join('')}</ul>${missingDocs.length?`<p class="missing-docs">${esc(t('missingDocs'))}: ${missingDocs.map(d=>esc(tx(d.title))).join(' / ')}</p>`:''}${r.feedback.passed?`<div class="success">${esc(t('modelNote'))}</div>`:''}<p class="footer-note">${esc(t('selfStudy'))}</p>${btn('show-model',t('showModel'),'small')} ${btn('export-report',t('exportReport'),'quiet small')}${modelOpen?`<div class="review"><h3>${esc(t('model'))}</h3><p><strong>${esc(t('verdict'))}:</strong> ${esc(t(c.answer.verdict))}<br><strong>${esc(t('priority'))}:</strong> ${esc(t(c.answer.priority))}<br><strong>${esc(t('action'))}:</strong> ${esc(t(c.answer.action))}</p><h3>${esc(t('facts'))}</h3><p>${esc(tx(c.answer.facts))}</p><h3>${esc(t('nextStep'))}</h3><p>${esc(tx(c.answer.nextStep))}</p><p>${esc(tx(c.answer.explanation))}</p></div>`:''}${r.completed?`<div style="margin-top:18px">${C.cases.indexOf(c)<C.cases.length-1?btn('next-case',t('nextCase'),'primary small'):btn('home',t('home'),'primary small')}</div>`:''}</div>`:''}`;
+    return `<h3>${esc(t('evidence'))} <span class="muted">${esc(countLabel)}</span></h3><p class="footer-note">${esc(t('evidenceNote'))}</p><div id="evidence-list">${r.evidence.length?r.evidence.map(id=>{const e=c.events.find(x=>x.id===id);return `<div class="evidence-item"><span><code>${esc(id)}</code><br>${esc(e.rule.description)}</span>${btn('evidence-remove','×','small',`data-id="${esc(id)}" aria-label="${esc(t('remove')+' '+id)}"`)}</div>`;}).join(''):`<p class="muted">${esc(t('noEvidence'))}</p>`}</div>${renderPreviousSubmission()}<form id="report-form" style="margin-top:18px">${renderQuestions()}<div class="report-grid">${[['verdict',['incident','benign','unknown']],['priority',['high','medium','low']],['action',['escalate','monitor','verify']]].map(([key,choices])=>`<div><label for="report-${key}">${esc(t(key))}</label><select id="report-${key}" data-report="${key}">${options(choices,a[key])}</select></div>`).join('')}<div><label for="report-target">${esc(t('target'))}</label><select id="report-target" data-report="target"><option value="">${esc(t('select'))}</option>${c.agents.map(x=>`<option value="${esc(x.id)}" ${a.target===x.id?'selected':''}>${esc(x.name)} (${esc(x.id)})</option>`).join('')}</select></div></div><div class="report-field"><label for="report-facts">${esc(t('facts'))}</label><textarea id="report-facts" data-report="facts" maxlength="4000" placeholder="${esc(t('factsPlaceholder'))}">${esc(a.facts)}</textarea></div><div class="report-field"><label for="report-nextStep">${esc(t('nextStep'))}</label><textarea id="report-nextStep" data-report="nextStep" maxlength="4000" placeholder="${esc(t('nextPlaceholder'))}">${esc(a.nextStep)}</textarea></div><p class="footer-note">${esc(t('structural'))}</p><button type="submit" class="primary">${esc(t('submit'))}</button></form>${r.feedback?`<div class="review"><h3>${esc(t(r.feedback.passed?'passed':'tryAgain'))}</h3><ul class="checks">${r.feedback.checks.map(x=>`<li class="${x.passed?'yes':'no'}">${x.passed?'✓':'○'} ${esc(questionLabel(x.key))}</li>`).join('')}</ul>${missingDocs.length?`<p class="missing-docs">${esc(t('missingDocs'))}: ${missingDocs.map(d=>esc(tx(d.title))).join(' / ')}</p>`:''}${r.feedback.passed?`<div class="success">${esc(t('modelNote'))}</div>`:''}<p class="footer-note">${esc(t('selfStudy'))}</p>${btn('show-model',t('showModel'),'small')} ${btn('export-report',t('exportReport'),'quiet small')}${modelOpen?`<div class="review"><h3>${esc(t('model'))}</h3><p><strong>${esc(t('verdict'))}:</strong> ${esc(t(c.answer.verdict))}<br><strong>${esc(t('priority'))}:</strong> ${esc(t(c.answer.priority))}<br><strong>${esc(t('action'))}:</strong> ${esc(t(c.answer.action))}</p>${c.questions?.length?`<h3>${esc(t('findings'))}</h3>${c.questions.map(q=>`<p><strong>${esc(tx(q.label))}</strong></p><pre>${esc(q.acceptedAnswers[0])}</pre>`).join('')}`:''}<h3>${esc(t('facts'))}</h3><p>${esc(tx(c.answer.facts))}</p><h3>${esc(t('nextStep'))}</h3><p>${esc(tx(c.answer.nextStep))}</p><p>${esc(tx(c.answer.explanation))}</p></div>`:''}${r.completed?`<div style="margin-top:18px">${C.cases.indexOf(c)<C.cases.length-1?btn('next-case',t('nextCase'),'primary small'):btn('home',t('home'),'primary small')}</div>`:''}</div>`:''}`;
   }
   function render() {
     document.documentElement.lang=progress.language;document.title='Wazuhroom — '+t('workflow');
@@ -953,7 +1178,7 @@ name~web</pre><details><summary>${esc(t('fieldCount'))}</summary><pre>${Object.e
     r.filters=filters;op('search');page=0;searchError='';saveLocal();render();
   }
   function applyRange(from,to) {if(!Number.isFinite(Date.parse(from))||!Number.isFinite(Date.parse(to))||Date.parse(from)>=Date.parse(to)){searchError='rangeError';render();return;}record().from=new Date(from).toISOString();record().to=new Date(to).toISOString();fromDraft=dt(record().from);toDraft=dt(record().to);op('range');searchError='';page=0;saveLocal();render();}
-  function reportText() {const c=active(),r=record(),a=r.report;return ['Wazuhroom '+document.body.dataset.version,tx(c.title),'',...['verdict','priority','action'].map(k=>t(k)+': '+t(a[k]||'select')),t('target')+': '+a.target,'',t('evidence')+': '+r.evidence.join(', '),t('documents')+': '+r.documents.join(', '),'',t('facts'),a.facts,'',t('nextStep'),a.nextStep,'',t('structural')].join('\n');}
+  function reportText() {const c=active(),r=record(),a=r.report;return ['Wazuhroom '+document.body.dataset.version,tx(c.title),'',...['verdict','priority','action'].map(k=>t(k)+': '+t(a[k]||'select')),t('target')+': '+a.target,'',...(c.questions||[]).flatMap(q=>[tx(q.label),a.answers?.[q.id]||'','']),t('evidence')+': '+r.evidence.join(', '),t('documents')+': '+r.documents.join(', '),'',t('facts'),a.facts,'',t('nextStep'),a.nextStep,'',t('structural')].join('\n');}
   function handle(action,el) {
     syncDraft();const r=record(),c=active();
     switch(action){
@@ -963,6 +1188,8 @@ name~web</pre><details><summary>${esc(t('fieldCount'))}</summary><pre>${Object.e
       case 'coach-tab':tab=el.dataset.tab;render();if(innerWidth<=680)document.querySelector('.coach').scrollIntoView();break;
       case 'save':exportSave();notify(t('saved'));break;
       case 'load':document.getElementById('import-file').click();break;
+      case 'open-decoder':openDecoder();break;
+      case 'decode-event':openDecoder(c.events.find(e=>e.id===el.dataset.id)?.data.artifact?.encoded_content);break;
       case 'help':help();break;case 'search-help':help(true);break;
       case 'close-dialog':dialog.close();pendingImport=null;break;
       case 'full-range':applyRange(c.timeRange.from,c.timeRange.to);break;
@@ -989,16 +1216,27 @@ name~web</pre><details><summary>${esc(t('fieldCount'))}</summary><pre>${Object.e
     }
   }
   document.addEventListener('click',ev=>{const el=ev.target.closest('[data-action]');if(el){ev.preventDefault();handle(el.dataset.action,el);}});
-  document.addEventListener('input',ev=>{if(ev.target.dataset.report){record().report[ev.target.dataset.report]=ev.target.value;saveLocal();}});
+  document.addEventListener('input',ev=>{
+    if(ev.target.dataset.report){record().report[ev.target.dataset.report]=ev.target.value;saveLocal();}
+    if(ev.target.dataset.answer){record().report.answers[ev.target.dataset.answer]=ev.target.value;saveLocal();}
+    if(ev.target.id==='base64-input')decoderDrafts[active().id]={input:ev.target.value,output:'',error:false};
+  });
   document.addEventListener('change',ev=>{
     const el=ev.target;
     if(el.id==='language'){syncDraft();progress.language=el.value;saveLocal();render();}
     if(el.dataset.report){record().report[el.dataset.report]=el.value;saveLocal();}
+    if(el.dataset.answer){record().report.answers[el.dataset.answer]=el.value;saveLocal();}
     if(el.dataset.column){if(el.checked)cols.push(el.dataset.column);else if(cols.length>1)cols=cols.filter(x=>x!==el.dataset.column);render();}
   });
   document.addEventListener('submit',ev=>{
     ev.preventDefault();syncDraft();const r=record();
-    if(ev.target.id==='event-search'){
+    if(ev.target.id==='base64-form'){
+      const draft={input:document.getElementById('base64-input').value,output:'',error:false};
+      try{draft.output=E.decodeBase64Text(draft.input);}catch(_){draft.error=true;}
+      decoderDrafts[active().id]=draft;
+      document.getElementById('base64-output').textContent=draft.output;
+      document.getElementById('base64-error').hidden=!draft.error;
+    }else if(ev.target.id==='event-search'){
       try{E.search(active().events,{query:queryDraft,filters:r.filters,from:r.from,to:r.to});r.query=queryDraft;if(r.query.trim()||r.filters.some(x=>!x.disabled))op('search');searchError='';page=0;saveLocal();}catch(_){searchError='searchError';}render();
     }else if(ev.target.id==='agent-search'){
       try{E.searchAgents(active().agents,agentDraft);agentQuery=agentDraft;searchError='';}catch(_){searchError='searchError';}render();

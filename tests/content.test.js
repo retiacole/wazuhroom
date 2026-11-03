@@ -17,11 +17,11 @@ function bilingual(value, label) {
   assert.doesNotMatch(value.en, /[\u3040-\u30ff\u3400-\u9fff]/, `${label}: English prose`);
 }
 
-test('dataset provides one tutorial and six investigations with gradual support', () => {
+test('dataset provides one tutorial and seven investigations with gradual support', () => {
   assert.equal(content.version, 'wazuhroom-1');
   assert.equal(content.referenceVersion, '4.14');
-  assert.equal(content.cases.length, 7);
-  assert.deepEqual(content.cases.map(item => item.stage), ['tutorial', 'guided', 'guided', 'checklist', 'checklist', 'independent', 'independent']);
+  assert.equal(content.cases.length, 8);
+  assert.deepEqual(content.cases.map(item => item.stage), ['tutorial', 'guided', 'guided', 'checklist', 'checklist', 'independent', 'independent', 'independent']);
   assert.equal(new Set(content.cases.map(item => item.id)).size, content.cases.length);
 });
 
@@ -40,6 +40,10 @@ test('all learner-authored prose has complete Japanese and English counterparts'
     for (const step of item.steps) {
       bilingual(step.title, `${step.id}.title`);
       bilingual(step.body, `${step.id}.body`);
+    }
+    for (const question of item.questions || []) {
+      bilingual(question.label, `${item.id}.${question.id}.label`);
+      bilingual(question.prompt, `${item.id}.${question.id}.prompt`);
     }
     for (const key of ['facts', 'nextStep', 'explanation']) bilingual(item.answer[key], `${item.id}.answer.${key}`);
   }
@@ -276,9 +280,9 @@ test('every document instruction names the actual scope, change, runbook, and an
   }
 });
 
-test('instruction improvements preserve existing completion requirements and dataset identity', () => {
+test('instruction improvements preserve the original seven completion requirements and dataset identity', () => {
   assert.equal(content.version, 'wazuhroom-1');
-  for (const item of content.cases) {
+  for (const item of content.cases.filter(item => item.id !== 'crypto-compromise')) {
     const required = [`${item.id}-scope`, `${item.id}-change`];
     if (item.id === 'mixed-auth') required.push('mixed-auth-exercise');
     assert.deepEqual(item.answer.documentIds, required, `${item.id}: existing saves must not gain a runbook requirement`);
@@ -351,4 +355,203 @@ test('navigation guidance points to Endpoints and the Threat Hunting event list'
   const events = byId.tutorial.steps.find(step => step.kind === 'events').body;
   assert.match(events.ja, /Threat Hunting.*イベント一覧/);
   assert.match(events.en, /Threat Hunting.*event list/);
+});
+
+test('crypto revision 2 requires all seven disclosed evidence categories and three contextual documents', () => {
+  const item = byId['crypto-compromise'];
+  assert.equal(item.revision, 2);
+  assert.equal(item.stage, 'independent');
+  assert.equal(item.answer.target, '001');
+  assert.equal(item.answer.verdict, 'incident');
+  assert.equal(item.answer.priority, 'high');
+  assert.equal(item.answer.action, 'escalate');
+  assert.deepEqual(item.answer.evidenceGroups, [
+    ['crypto-compromise-http'], ['crypto-compromise-process'], ['crypto-compromise-connection'], ['crypto-compromise-cron'], ['crypto-compromise-recurrence'], ['crypto-compromise-webpost'], ['crypto-compromise-file']
+  ]);
+  assert.deepEqual(item.answer.documentIds, ['crypto-compromise-scope', 'crypto-compromise-change', 'crypto-compromise-webroot']);
+  const evidence = item.steps.find(step => step.kind === 'evidence').body;
+  for (const text of [item.brief.ja, evidence.ja]) {
+    for (const term of ['HTTP', '停止前', 'PID', '外部接続', '定期実行', '再出現', '7', 'POST', 'Base64', '読取り専用レビュー', 'WEB-219', '3つの設問']) assert.ok(text.includes(term), `explicit evidence request: ${term}`);
+  }
+  for (const text of [item.brief.en, evidence.en]) {
+    for (const term of ['HTTP', 'pre-stop', 'PID', 'outbound connection', 'scheduled', 'seven', 'POST', 'Base64', 'read-only PHP-file review', 'WEB-219', 'three case questions']) assert.ok(text.includes(term), `explicit evidence request: ${term}`);
+  }
+});
+
+test('HTTP 200 is paired with a body error and cannot explain an already observed process', () => {
+  const events = Object.fromEntries(byId['crypto-compromise'].events.map(event => [event.id, event]));
+  const http = events['crypto-compromise-http'];
+  const process = events['crypto-compromise-process'];
+  assert.equal(http.data.http.method, 'POST');
+  assert.equal(http.data.http.status_code, 200);
+  assert.equal(http.data.path, undefined, 'HTTP URI does not establish a server filesystem path');
+  assert.match(http.data.http.response_summary, /Permission denied/);
+  assert.match(http.data.http.response_summary, /placement and execution are not confirmed/);
+  assert.match(http.data.http.body_summary, /executable bytes omitted/);
+  assert.ok(http.timestamp > process.timestamp);
+  assert.match(byId['crypto-compromise'].answer.facts.ja, /最初のプロセス観測より後/);
+  assert.match(byId['crypto-compromise'].answer.facts.en, /followed the initial process observation/);
+});
+
+test('crypto snapshots correlate by endpoint and nearby PID without turning recurrence into a proved launch mechanism', () => {
+  const item = byId['crypto-compromise'];
+  const events = Object.fromEntries(item.events.map(event => [event.id, event]));
+  const first = events['crypto-compromise-process'];
+  const flow = events['crypto-compromise-connection'];
+  const again = events['crypto-compromise-recurrence'];
+  const reconnect = events['crypto-compromise-reconnection'];
+  const absent = events['crypto-compromise-absent'];
+  const cron = events['crypto-compromise-cron'];
+  assert.equal(first.agent.id, flow.agent.id);
+  assert.equal(first.data.process.pid, flow.data.process.pid);
+  assert.ok(Date.parse(flow.timestamp) - Date.parse(first.timestamp) <= 60_000);
+  assert.equal(again.data.process.pid, reconnect.data.process.pid);
+  assert.notEqual(first.data.process.pid, again.data.process.pid);
+  assert.equal(first.data.process.cmd, again.data.process.cmd);
+  assert.equal(first.data.process.args, again.data.process.args);
+  assert.equal(first.data.process.euser, 'svc.web-lab');
+  assert.equal(again.data.process.euser, first.data.process.euser);
+  assert.ok(first.timestamp < absent.timestamp && absent.timestamp < again.timestamp);
+  assert.ok(first.data.process.start_time < first.timestamp);
+  assert.ok(again.data.process.start_time > absent.timestamp && again.data.process.start_time < again.timestamp);
+  assert.equal(cron.data.action, 'scheduled_entry_observed');
+  assert.equal(cron.data.user, first.data.process.euser);
+  assert.equal(cron.data.path, first.data.process.cmd);
+  assert.match(cron.full_log, /observation=read_only author=unknown added_at=unknown/);
+  assert.match(item.answer.explanation.en, /possible restart mechanism, not proof/);
+});
+
+test('crypto case distinguishes synthetic HTTP summaries from supplementary endpoint and operations observations', () => {
+  const item = byId['crypto-compromise'];
+  const scope = item.documents.find(doc => doc.id === 'crypto-compromise-scope').body;
+  assert.match(scope.ja, /実際のパケットキャプチャをWazuhログへ変換したものではありません/);
+  assert.match(scope.ja, /通信記録だけでは得られない情報.*合成観測/);
+  assert.match(scope.en, /not a conversion of real packet captures into Wazuh logs/);
+  assert.match(scope.en, /synthetic supplementary observations/);
+  assert.match(scope.en, /FIM, complete process ancestry, privilege escalation, and mining rewards are unavailable/);
+  assert.match(scope.ja, /Base64には独自に作成した非実行の英語疑似コードだけ/);
+  assert.match(scope.en, /Base64 contains only independently written, non-executable English pseudocode/);
+  assert.match(scope.en, /represents a POST body sent to the webshell/);
+  assert.doesNotMatch(JSON.stringify(item), /大量送信|bulk email|spam campaign/, 'one mail-request description is not a bulk-mail campaign');
+  assert.match(item.answer.nextStep.en, /HTTP activity and the existing process/);
+  const operations = item.documents.find(doc => doc.id === 'crypto-compromise-change').body;
+  assert.match(operations.ja, /架空の運用記録/);
+  assert.match(operations.en, /Fictional operations record/);
+  assert.match(operations.ja, /復旧判定は未完了/);
+  assert.match(operations.en, /recovery validation remain incomplete/);
+  assert.equal(item.events.filter(event => event.syscheck).length, 0, 'no invented FIM evidence');
+});
+
+test('crypto indicators are deliberately fictional and the case contains descriptions, not executable payloads', () => {
+  const item = byId['crypto-compromise'];
+  const keyEvents = item.events.filter(event => !event.id.includes('-bg-'));
+  for (const event of keyEvents) {
+    assert.equal(event.agent.id, '001');
+    for (const field of ['srcip', 'dstip']) {
+      const ip = event.data[field];
+      if (ip) assert.ok(ip === event.agent.ip || /^(?:192\.0\.2|198\.51\.100|203\.0\.113)\.\d+$/.test(ip), `documentation IP: ${field}`);
+    }
+    for (const value of [event.data.path, event.data.process && event.data.process.cmd].filter(Boolean)) {
+      assert.match(value, /^\/(?:opt|srv|var\/tmp)\/room-lab\//, 'dedicated fictional filesystem path');
+    }
+    if (event.data.http) {
+      assert.match(event.data.http.host, /\.invalid$/);
+      assert.match(event.data.http.uri, /^\/room-lab\//);
+      assert.match(event.data.http.request_id, /^ROOM-HTTP-/);
+    }
+    if (event.data.process && event.data.process.args) {
+      assert.match(event.data.process.args, /pool-07\.room\.invalid/);
+      assert.match(event.data.process.args, /TRAINING-WALLET-07-NOT-A-REAL-ADDRESS/);
+    }
+    const text = JSON.stringify(event);
+    assert.doesNotMatch(text, /<\?php|\u007fELF|eval\s*\(|base64_decode\s*\(/, 'no web-shell source, ELF bytes, or encoded payload execution');
+  }
+  assert.equal(item.timeRange.from, '2026-10-21T16:00:00.000Z');
+  assert.equal(item.timeRange.to, '2026-10-21T16:40:00.000Z');
+  for (const language of ['ja', 'en']) {
+    const policy = item.documents.find(doc => doc.id === 'crypto-compromise-runbook').body[language];
+    assert.ok(policy.includes(language === 'ja' ? '承認外の採掘用途' : 'suspected unauthorized mining'));
+  }
+});
+
+test('webshell questions are grounded in separate HTTP, filesystem, and publication evidence', () => {
+  const item = byId['crypto-compromise'];
+  const events = Object.fromEntries(item.events.map(event => [event.id, event]));
+  const post = events['crypto-compromise-webpost'];
+  const upload = events['crypto-compromise-http'];
+  const file = events['crypto-compromise-file'];
+  const mapping = item.documents.find(doc => doc.id === 'crypto-compromise-webroot');
+  const questions = Object.fromEntries(item.questions.map(question => [question.id, question]));
+  assert.deepEqual(Object.keys(questions), ['webshellUri', 'webshellPath', 'decodedText']);
+  assert.equal(post.data.http.method, 'POST');
+  assert.equal(post.data.http.status_code, 200);
+  assert.equal(post.data.http.uri, upload.data.http.uri);
+  assert.notEqual(post.data.http.request_id, upload.data.http.request_id);
+  assert.ok(upload.timestamp < post.timestamp && post.timestamp < file.timestamp);
+  assert.equal(post.data.path, undefined, 'HTTP summary does not invent a server path');
+  assert.equal(file.data.action, 'file_inspection_observed');
+  assert.match(file.data.artifact.content_summary, /Read-only static review/);
+  assert.match(file.data.artifact.content_summary, /passes POST input to server-side code processing/);
+  assert.match(file.data.artifact.content_summary, /Installation time and actor are unknown/);
+  assert.equal(file.data.artifact.encoded_content, undefined, 'encoded text came from the POST, not the file review');
+  assert.deepEqual(questions.webshellUri.acceptedAnswers, [post.data.http.uri]);
+  assert.deepEqual(questions.webshellPath.acceptedAnswers, [file.data.path]);
+  const prefix = '/room-lab/';
+  const webroot = '/srv/room-lab/www/';
+  assert.equal(file.data.path, webroot + post.data.http.uri.slice(prefix.length));
+  for (const language of ['ja', 'en']) {
+    assert.ok(mapping.body[language].includes(prefix));
+    assert.ok(mapping.body[language].includes(webroot));
+    assert.ok(mapping.body[language].includes(file.data.path));
+    assert.ok(item.steps.find(step => step.kind === 'document').body[language].includes(mapping.title[language]));
+  }
+  assert.match(mapping.body.ja, /シンボリックリンク.*ありません/);
+  assert.match(mapping.body.en, /no URL rewrites, aliases to other directories, symbolic links/);
+  assert.match(mapping.body.en, /not recovered as content embedded in the file/);
+  assert.ok(item.answer.documentIds.includes(mapping.id));
+});
+
+test('POST Base64 decodes to the complete inert six-line exercise answer', () => {
+  const item = byId['crypto-compromise'];
+  const post = item.events.find(event => event.id === 'crypto-compromise-webpost');
+  const question = item.questions.find(question => question.id === 'decodedText');
+  const artifact = post.data.artifact;
+  assert.equal(artifact.encoding, 'base64');
+  assert.match(artifact.encoded_content, /^[A-Za-z0-9+/]+={0,2}$/);
+  const decoded = Buffer.from(artifact.encoded_content, 'base64').toString('utf8');
+  assert.equal(Buffer.from(decoded, 'utf8').toString('base64'), artifact.encoded_content);
+  assert.deepEqual(decoded.split('\n'), [
+    'TRAINING PSEUDOCODE - NOT EXECUTABLE',
+    'SET display_errors = off',
+    'SET request.REMOTE_ADDR = 192.0.2.73',
+    'SET request.SCRIPT_NAME = /room-lab/forms/contact.php',
+    'REQUEST MAIL TO mailbox-07@room.invalid',
+    'DISPLAY mail_request_result'
+  ]);
+  assert.deepEqual(question.acceptedAnswers, [decoded]);
+  assert.equal(question.multiline, true);
+  assert.ok(decoded.length < 4096);
+  assert.doesNotMatch(decoded, /<\?php|\$[_A-Za-z]|\b(?:eval|mail|system|exec|base64_decode)\s*\(/);
+  assert.ok(post.full_log.includes(artifact.encoded_content));
+  for (const language of ['ja', 'en']) assert.ok(item.hints[2][language].includes(decoded), 'self-study hint retains the complete answer');
+});
+
+test('decoded mail behavior is interpreted without treating forged request variables as host evidence', () => {
+  const item = byId['crypto-compromise'];
+  const post = item.events.find(event => event.id === 'crypto-compromise-webpost');
+  const questions = Object.fromEntries(item.questions.map(question => [question.id, question]));
+  const decoded = questions.decodedText.acceptedAnswers[0];
+  const overrideSource = decoded.match(/REMOTE_ADDR = (.+)/)[1];
+  const overridePath = decoded.match(/SCRIPT_NAME = (.+)/)[1];
+  assert.notEqual(overrideSource, post.data.srcip);
+  assert.notEqual(overridePath, questions.webshellUri.acceptedAnswers[0]);
+  assert.notEqual(overridePath, questions.webshellPath.acceptedAnswers[0]);
+  assert.match(post.data.http.response_summary, /mail delivery are not confirmed/);
+  assert.match(item.answer.explanation.ja, /要求変数の書換え先.*実際の設置パスではありません/);
+  assert.match(item.answer.explanation.en, /request-variable override, not the installed path/);
+  assert.match(item.answer.explanation.en, /does not replace the HTTP source/);
+  assert.match(item.answer.explanation.en, /does not establish successful delivery or installation of the mining process/);
+  const reportStep = item.steps.find(step => step.kind === 'report').body;
+  assert.match(reportStep.ja, /3設問/);
+  assert.match(reportStep.en, /all three case questions/);
 });

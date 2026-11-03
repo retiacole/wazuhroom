@@ -7,6 +7,8 @@
 
   const UNSAFE = new Set(['__proto__', 'prototype', 'constructor']);
   const MAX_QUERY = 2000;
+  const ORIGINAL_CASE_IDS = Object.freeze(['tutorial', 'auth-chain', 'approved-admin', 'service-persistence', 'collection-gap', 'mixed-auth', 'fim-change']);
+  const ADDED_CASE_ID = 'crypto-compromise';
   const STEPS = ['events', 'range', 'search', 'detail', 'evidence', 'document', 'report'];
   const VIEWS = ['overview', 'agents', 'events', 'fim'];
   const CHOICES = {
@@ -28,6 +30,14 @@
     'data.srcuser': 'keyword', 'data.dstuser': 'keyword', 'data.user': 'keyword',
     'data.action': 'keyword', 'data.status': 'keyword', 'data.lastKeepAlive': 'keyword',
     'data.service': 'keyword', 'data.path': 'keyword', 'data.sha256': 'keyword', 'data.command': 'text',
+    'data.schedule': 'keyword',
+    'data.process.pid': 'number', 'data.process.ppid': 'number', 'data.process.name': 'keyword',
+    'data.process.cmd': 'keyword', 'data.process.args': 'text', 'data.process.euser': 'keyword',
+    'data.process.cpu_pct': 'number', 'data.process.start_time': 'keyword',
+    'data.http.method': 'keyword', 'data.http.status_code': 'number', 'data.http.host': 'keyword',
+    'data.http.uri': 'keyword', 'data.http.request_id': 'keyword', 'data.http.upload_name': 'keyword',
+    'data.http.body_summary': 'text', 'data.http.response_summary': 'text',
+    'data.artifact.encoding': 'keyword', 'data.artifact.encoded_content': 'text', 'data.artifact.content_summary': 'text',
     'data.win.system.eventID': 'keyword', 'data.win.system.providerName': 'keyword',
     'data.win.system.computer': 'keyword', 'data.win.system.channel': 'keyword',
     'data.win.eventdata.subjectUserName': 'keyword', 'data.win.eventdata.targetUserName': 'keyword',
@@ -60,6 +70,44 @@
     if (typeof value !== 'string' || value.length > maximum) fail('Invalid ' + label + '.');
     return value;
   }
+  function decodeBase64Text(input) {
+    scalarString(input, 'Base64 input', 4096);
+    const source = input.replace(/[\t\n\r\f ]/g, '');
+    if (!source || source.length % 4 !== 0 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(source)) fail('Invalid standard Base64 text or padding.');
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    const padding = source.endsWith('==') ? 2 : source.endsWith('=') ? 1 : 0;
+    if ((padding === 2 && (alphabet.indexOf(source[source.length - 3]) & 15) !== 0) || (padding === 1 && (alphabet.indexOf(source[source.length - 2]) & 3) !== 0)) fail('Invalid non-canonical Base64 padding bits.');
+    const bytes = [];
+    for (let i = 0; i < source.length; i += 4) {
+      const a = alphabet.indexOf(source[i]), b = alphabet.indexOf(source[i + 1]);
+      const c = source[i + 2] === '=' ? 0 : alphabet.indexOf(source[i + 2]);
+      const d = source[i + 3] === '=' ? 0 : alphabet.indexOf(source[i + 3]);
+      bytes.push((a << 2) | (b >> 4));
+      if (source[i + 2] !== '=') bytes.push(((b & 15) << 4) | (c >> 2));
+      if (source[i + 3] !== '=') bytes.push(((c & 3) << 6) | d);
+    }
+    let decoded;
+    try { decoded = decodeURIComponent(bytes.map(byte => '%' + byte.toString(16).padStart(2, '0')).join('')); }
+    catch (_) { fail('Decoded bytes are not valid UTF-8 text.'); }
+    if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(decoded)) fail('Decoded bytes contain unsupported control characters.');
+    return decoded;
+  }
+  function caseRevision(item) {
+    const revision = item.revision === undefined ? 1 : item.revision;
+    if (!Number.isInteger(revision) || revision < 1) fail('Invalid authored case revision.');
+    return revision;
+  }
+  function questionsFor(item) {
+    const questions = item.questions === undefined ? [] : item.questions;
+    if (!Array.isArray(questions) || questions.length > 8 || new Set(questions.map(question => question?.id)).size !== questions.length) fail('Invalid authored questions.');
+    for (const question of questions) {
+      if (!plain(question) || typeof question.id !== 'string' || !/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(question.id) || UNSAFE.has(question.id) || !Array.isArray(question.acceptedAnswers) || !question.acceptedAnswers.length || question.acceptedAnswers.length > 8 || question.acceptedAnswers.some(value => typeof value !== 'string' || !value.trim() || value.length > 4096)) fail('Invalid authored question.');
+    }
+    if (questions.length && caseRevision(item) < 2) fail('Question cases require a revision marker.');
+    return questions;
+  }
+  function blankAnswers(item) { return Object.fromEntries(questionsFor(item).map(question => [question.id, ''])); }
+  function normalizeAnswer(value, question) { return (question.multiline === true ? value.replace(/\r\n?/g, '\n') : value).trim(); }
   function tokenize(query) {
     scalarString(query, 'query');
     const tokens = [];
@@ -251,6 +299,11 @@
     for (const item of content.cases) {
       if (UNSAFE.has(item.id) || own(records, item.id)) fail('Invalid or duplicate case ID.');
       records[item.id] = { query: '', filters: [], from: item.timeRange.from, to: item.timeRange.to, view: 'overview', evidence: [], documents: [], operations: [], report: { verdict: '', priority: '', action: '', target: '', facts: '', nextStep: '' }, completed: false, feedback: null, hint: 0, expanded: null };
+      questionsFor(item);
+      if (caseRevision(item) > 1) {
+        records[item.id].caseRevision = caseRevision(item);
+        records[item.id].report.answers = blankAnswers(item);
+      }
     }
     return { format: 'wazuhroom-save', version: 1, dataset: content.version, language: 'ja', activeCaseId: content.cases[0].id, records };
   }
@@ -272,6 +325,10 @@
       { key: 'facts', passed: prose(report.facts) },
       { key: 'nextStep', passed: prose(report.nextStep) }
     ];
+    for (const question of questionsFor(caseData)) {
+      const response = report.answers?.[question.id];
+      checks.push({ key: 'question:' + question.id, passed: typeof response === 'string' && response.length <= 4096 && question.acceptedAnswers.some(answer => normalizeAnswer(response, question) === normalizeAnswer(answer, question)) });
+    }
     return { passed: checks.every(check => check.passed), checks };
   }
   function safeTree(value, seen = new Set(), depth = 0, budget = { count: 0 }) {
@@ -293,9 +350,42 @@
     if (!Array.isArray(value) || value.length > maximum || value.some(id => typeof id !== 'string' || !allowed.has(id)) || new Set(value).size !== value.length) fail('Invalid ' + label + '.');
     return value.slice();
   }
+  function validateReport(raw, item, legacy = false) {
+    const keys = ['verdict', 'priority', 'action', 'target', 'facts', 'nextStep'];
+    const revised = caseRevision(item) > 1 && !legacy;
+    if (revised) keys.push('answers');
+    exactKeys(raw, keys, keys, 'report');
+    for (const key of Object.keys(CHOICES)) if (!CHOICES[key].includes(raw[key])) fail('Invalid report choice.');
+    if (raw.target !== '' && !item.agents.some(agent => agent.id === raw.target)) fail('Invalid report target.');
+    scalarString(raw.facts, 'facts', 4000);
+    scalarString(raw.nextStep, 'next step', 4000);
+    const result = { ...raw };
+    if (revised) {
+      const ids = questionsFor(item).map(question => question.id);
+      exactKeys(raw.answers, ids, ids, 'investigation answers');
+      result.answers = {};
+      for (const id of ids) result.answers[id] = scalarString(raw.answers[id], 'investigation answer', 4096);
+    }
+    return result;
+  }
+  function previousSubmission(record) {
+    const { answers, ...report } = record.report;
+    return { caseRevision: 1, report, evidence: record.evidence.slice(), documents: record.documents.slice() };
+  }
+  function validatePreviousSubmission(raw, item) {
+    const keys = ['caseRevision', 'report', 'evidence', 'documents'];
+    exactKeys(raw, keys, keys, 'previous submission');
+    if (item.id !== ADDED_CASE_ID || caseRevision(item) !== 2 || raw.caseRevision !== 1) fail('Unsupported previous submission revision.');
+    const eventIds = new Set(item.events.map(event => event.id)), documentIds = new Set(item.documents.map(document => document.id));
+    return { caseRevision: 1, report: validateReport(raw.report, item, true), evidence: idList(raw.evidence, eventIds, eventIds.size, 'previous evidence'), documents: idList(raw.documents, documentIds, documentIds.size, 'previous documents') };
+  }
   function validateRecord(raw, item, snapshot = false) {
     const required = ['query', 'filters', 'from', 'to', 'view', 'evidence', 'documents', 'operations', 'report', 'completed', 'feedback', 'hint', 'expanded'];
-    exactKeys(raw, [...required, 'completion'], required, 'record');
+    const revised = caseRevision(item) > 1;
+    exactKeys(raw, [...required, 'completion', ...(revised ? ['caseRevision', 'previousSubmission'] : [])], required, 'record');
+    const legacy = item.id === ADDED_CASE_ID && caseRevision(item) === 2 && !own(raw, 'caseRevision') && plain(raw.report) && !own(raw.report, 'answers');
+    if (revised && !legacy && raw.caseRevision !== caseRevision(item)) fail('Unsupported saved case revision.');
+    if (legacy && own(raw, 'previousSubmission')) fail('A legacy record cannot contain a migrated previous submission.');
     if (snapshot && own(raw, 'completion') && raw.completion !== null) fail('Nested completion snapshots are invalid.');
     scalarString(raw.query, 'query');
     if (!Array.isArray(raw.filters) || raw.filters.length > 30) fail('Invalid saved filters.');
@@ -303,22 +393,28 @@
     // A saved search must be executable: invalid or unsupported queries are never imported silently.
     search([], { query: raw.query, filters, from: raw.from, to: raw.to, module: 'events' });
     if (!VIEWS.includes(raw.view) || typeof raw.completed !== 'boolean' || !Number.isInteger(raw.hint) || raw.hint < 0 || raw.hint > 3) fail('Invalid saved view, completion or hint.');
-    const eventIds = new Set(item.events.map(event => event.id)), documentIds = new Set(item.documents.map(document => document.id)), agentIds = new Set(item.agents.map(agent => agent.id));
+    const eventIds = new Set(item.events.map(event => event.id)), documentIds = new Set(item.documents.map(document => document.id));
     if (raw.expanded !== null && !eventIds.has(raw.expanded)) fail('Invalid expanded event.');
-    const reportKeys = ['verdict', 'priority', 'action', 'target', 'facts', 'nextStep'];
-    exactKeys(raw.report, reportKeys, reportKeys, 'report');
-    for (const key of Object.keys(CHOICES)) if (!CHOICES[key].includes(raw.report[key])) fail('Invalid report choice.');
-    if (raw.report.target !== '' && !agentIds.has(raw.report.target)) fail('Invalid report target.');
-    scalarString(raw.report.facts, 'facts', 4000);
-    scalarString(raw.report.nextStep, 'next step', 4000);
+    const report = validateReport(raw.report, item, legacy);
+    if (legacy) report.answers = blankAnswers(item);
     if (raw.feedback !== null && !plain(raw.feedback)) fail('Invalid feedback.');
     const result = {
       query: raw.query, filters, from: raw.from, to: raw.to, view: raw.view,
       evidence: idList(raw.evidence, eventIds, eventIds.size, 'evidence'),
       documents: idList(raw.documents, documentIds, documentIds.size, 'documents'),
       operations: idList(raw.operations, new Set(STEPS), STEPS.length, 'operations'),
-      report: { ...raw.report }, completed: false, feedback: null, hint: raw.hint, expanded: raw.expanded
+      report, completed: false, feedback: null, hint: raw.hint, expanded: raw.expanded
     };
+    if (revised) result.caseRevision = caseRevision(item);
+    if (legacy) {
+      if (!snapshot && raw.completion !== undefined && raw.completion !== null) {
+        if (!plain(raw.completion) || own(raw.completion, 'caseRevision') || (plain(raw.completion.report) && own(raw.completion.report, 'answers'))) fail('Invalid legacy completion revision.');
+        result.previousSubmission = previousSubmission(validateRecord(raw.completion, item, true));
+      } else if (!snapshot && raw.completed) result.previousSubmission = previousSubmission(result);
+      if (raw.feedback !== null) result.feedback = assess(item, result);
+      return result;
+    }
+    if (own(raw, 'previousSubmission')) result.previousSubmission = validatePreviousSubmission(raw.previousSubmission, item);
     if (!snapshot && raw.completion !== undefined && raw.completion !== null) {
       const completion = validateRecord(raw.completion, item, true);
       if (!assess(item, completion).passed) fail('Completion snapshot does not pass assessment.');
@@ -342,10 +438,17 @@
     if (!['ja', 'en'].includes(input.language)) fail('Invalid saved language.');
     const caseIds = content.cases.map(item => item.id);
     if (!caseIds.includes(input.activeCaseId)) fail('Invalid active case.');
-    exactKeys(input.records, caseIds, caseIds, 'records');
+    // The eighth case is an additive release. Only a complete original seven-case save
+    // may omit it; missing original records and unknown records still indicate bad input.
+    const additiveRelease = caseIds.length === ORIGINAL_CASE_IDS.length + 1 && caseIds.includes(ADDED_CASE_ID) && ORIGINAL_CASE_IDS.every(id => caseIds.includes(id));
+    exactKeys(input.records, caseIds, additiveRelease ? ORIGINAL_CASE_IDS : caseIds, 'records');
+    if (!own(input.records, input.activeCaseId)) fail('The active case is missing from the save.');
+    const defaults = additiveRelease && !own(input.records, ADDED_CASE_ID) ? createProgress(content) : null;
     const records = {};
-    for (const item of content.cases) records[item.id] = validateRecord(input.records[item.id], item);
+    for (const item of content.cases) records[item.id] = own(input.records, item.id)
+      ? validateRecord(input.records[item.id], item)
+      : defaults.records[item.id];
     return { format: 'wazuhroom-save', version: 1, dataset: content.version, language: input.language, activeCaseId: input.activeCaseId, records };
   }
-  return Object.freeze({ get, search, searchAgents, createProgress, assess, validateProgress, FIELD_TYPES, AGENT_TYPES });
+  return Object.freeze({ get, search, searchAgents, decodeBase64Text, createProgress, assess, validateProgress, FIELD_TYPES, AGENT_TYPES });
 }));

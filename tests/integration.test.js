@@ -22,6 +22,7 @@ function successfulRecord(item, language = 'ja') {
     verdict: item.answer.verdict, priority: item.answer.priority, action: item.answer.action,
     target: item.answer.target, facts: item.answer.facts[language], nextStep: item.answer.nextStep[language]
   };
+  if (item.revision > 1) record.report.answers = Object.fromEntries((item.questions || []).map(question => [question.id, question.acceptedAnswers[0]]));
   return record;
 }
 function submit(record, item) {
@@ -91,7 +92,7 @@ test('the queries taught in hints and tutorial lead to the intended evidence', (
 });
 
 for (const language of ['ja', 'en']) {
-  test(`all seven authored answers pass, snapshot and restore in ${language}`, () => {
+  test(`all authored answers pass, snapshot and restore in ${language}`, () => {
     const progress = E.createProgress(C);
     progress.language = language;
     for (const item of C.cases) {
@@ -231,6 +232,10 @@ test('v0.1.0 scored completion saves still restore and discard legacy scores', (
   assert.equal(restored.records.tutorial.feedback.passed, false);
   assert.equal(restored.records.tutorial.completion.report.verdict, 'unknown');
   assert.equal(restored.records.tutorial.completion.feedback.passed, true);
+  if (C.cases.some(item => item.id === 'crypto-compromise')) {
+    assert.equal(Object.keys(restored.records).length, 8);
+    assert.deepEqual(restored.records['crypto-compromise'], E.createProgress(C).records['crypto-compromise']);
+  }
   for (const [id] of oldCases) {
     assert.deepEqual(restored.records[id].filters, original.records[id].filters, id);
     assert.equal(restored.records[id].query, original.records[id].query, id);
@@ -244,13 +249,93 @@ test('v0.1.0 scored completion saves still restore and discard legacy scores', (
   assert.equal(JSON.stringify(again).includes('"score"'), false);
 });
 
+test('pre-revision eight-case progress preserves seven completions and both crypto reports while reopening new questions', () => {
+  const crypto = byId['crypto-compromise'];
+  assert.equal(crypto.revision, 2);
+  const progress = E.createProgress(C);
+  progress.activeCaseId = 'crypto-compromise';
+  progress.language = 'en';
+  for (const item of C.cases.filter(item => item.id !== 'crypto-compromise')) {
+    const record = successfulRecord(item, 'en');
+    submit(record, item);
+    progress.records[item.id] = record;
+  }
+  // The former eighth-case save had neither caseRevision nor report.answers.
+  const oldCrypto = {
+    query: 'data.process.pid:42617', filters: [{ field: 'agent.id', value: '001', negate: false, disabled: false }],
+    from: '2026-10-21T16:00:00.000Z', to: '2026-10-21T16:40:00.000Z', view: 'events',
+    evidence: ['crypto-compromise-http', 'crypto-compromise-process', 'crypto-compromise-connection', 'crypto-compromise-cron', 'crypto-compromise-recurrence'],
+    documents: ['crypto-compromise-scope', 'crypto-compromise-change'],
+    operations: ['search', 'detail', 'evidence', 'document', 'report'],
+    report: { verdict: 'incident', priority: 'high', action: 'escalate', target: '001', facts: 'Previously submitted process, connection and recurrence findings.', nextStep: 'Previously submitted handoff and unknown entry-route notes.' },
+    completed: true, feedback: { passed: true, checks: [] }, hint: 2, expanded: 'crypto-compromise-recurrence'
+  };
+  oldCrypto.completion = clone(oldCrypto);
+  oldCrypto.report.facts = 'A later unfinished review draft must also remain available.';
+  oldCrypto.report.verdict = 'unknown';
+  oldCrypto.evidence = ['crypto-compromise-process'];
+  progress.records['crypto-compromise'] = oldCrypto;
+  const inputBefore = clone(progress);
+  const restored = E.validateProgress(progress, C);
+  assert.deepEqual(progress, inputBefore);
+  assert.equal(restored.language, 'en');
+  assert.equal(restored.activeCaseId, 'crypto-compromise');
+  assert.equal(Object.values(restored.records).filter(record => record.completed).length, 7);
+  for (const item of C.cases.filter(item => item.id !== 'crypto-compromise')) assert.deepEqual(restored.records[item.id], inputBefore.records[item.id], item.id);
+  const revised = restored.records['crypto-compromise'];
+  assert.equal(revised.caseRevision, 2);
+  assert.equal(revised.completed, false);
+  assert.equal(Object.hasOwn(revised, 'completion'), false);
+  assert.equal(revised.report.facts, oldCrypto.report.facts);
+  assert.equal(revised.report.verdict, 'unknown');
+  assert.deepEqual(revised.evidence, oldCrypto.evidence);
+  assert.deepEqual(revised.documents, oldCrypto.documents);
+  assert.equal(revised.query, oldCrypto.query);
+  assert.deepEqual(revised.filters, oldCrypto.filters);
+  assert.deepEqual(revised.report.answers, Object.fromEntries(crypto.questions.map(question => [question.id, ''])));
+  assert.deepEqual(revised.previousSubmission, { caseRevision: 1, report: oldCrypto.completion.report, evidence: oldCrypto.completion.evidence, documents: oldCrypto.completion.documents });
+  assert.deepEqual(E.validateProgress(clone(restored), C), restored);
+
+  const completedRevision = successfulRecord(crypto, 'en');
+  completedRevision.previousSubmission = clone(revised.previousSubmission);
+  submit(completedRevision, crypto);
+  restored.records['crypto-compromise'] = completedRevision;
+  const final = E.validateProgress(clone(restored), C);
+  assert.equal(Object.values(final.records).filter(record => record.completed).length, 8);
+  assert.equal(final.records['crypto-compromise'].completion.caseRevision, 2);
+  assert.deepEqual(final.records['crypto-compromise'].completion.previousSubmission, revised.previousSubmission);
+  assert.deepEqual(final.records['crypto-compromise'].previousSubmission, revised.previousSubmission);
+});
+
+test('the encoded HTTP observation decodes to the authored inert answer and every new question is required', () => {
+  const crypto = byId['crypto-compromise'];
+  assert.equal(crypto.revision, 2);
+  assert.deepEqual(crypto.questions.map(question => question.id), ['webshellUri', 'webshellPath', 'decodedText']);
+  const encodedEvent = crypto.events.find(event => E.get(event, 'data.artifact.encoded_content'));
+  assert.ok(encodedEvent, 'an evidence event carries the encoded text');
+  const decodedQuestion = crypto.questions.find(question => question.id === 'decodedText');
+  const decoded = E.decodeBase64Text(encodedEvent.data.artifact.encoded_content);
+  assert.ok(decodedQuestion.acceptedAnswers.some(value => value.trim() === decoded.trim()));
+  assert.deepEqual(ids(E.search(crypto.events, { query: 'data.artifact.encoded_content:*' })), [encodedEvent.id]);
+  const record = successfulRecord(crypto, 'en');
+  record.report.answers.decodedText = decoded;
+  assert.equal(E.assess(crypto, record).passed, true);
+  for (const question of crypto.questions) {
+    const incomplete = clone(record);
+    incomplete.report.answers[question.id] = '';
+    assert.equal(E.assess(crypto, incomplete).checks.find(check => check.key === 'question:' + question.id).passed, false);
+    assert.equal(E.assess(crypto, incomplete).passed, false);
+  }
+  assert.equal(Object.hasOwn(globalThis, '__decodedExecution'), false);
+});
+
 test('UMD content and engine cooperate without CommonJS, browser APIs or network', () => {
   const context = vm.createContext({});
   for (const filename of ['content.js', 'engine.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '../src', filename), 'utf8'), context);
   const summary = vm.runInContext(`(() => {
     const p = WazuhEngine.createProgress(WazuhContent);
     const restored = WazuhEngine.validateProgress(JSON.parse(JSON.stringify(p)), WazuhContent);
-    return JSON.stringify({ cases: Object.keys(restored.records).length, counts: WazuhContent.cases.map(c => WazuhEngine.search(c.events, {from:c.timeRange.from,to:c.timeRange.to}).length) });
+    return JSON.stringify({ cases: Object.keys(restored.records).length, counts: WazuhContent.cases.map(c => WazuhEngine.search(c.events, {from:c.timeRange.from,to:c.timeRange.to}).length), decoded: WazuhEngine.decodeBase64Text('44OG44K544OI') });
   })()`, context);
-  assert.deepEqual(JSON.parse(summary), { cases: C.cases.length, counts: C.cases.map(item => item.events.length) });
+  assert.deepEqual(JSON.parse(summary), { cases: C.cases.length, counts: C.cases.map(item => item.events.length), decoded: 'テスト' });
 });

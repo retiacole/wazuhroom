@@ -1,4 +1,6 @@
-# Wazuhroom v0.1.1
+# Wazuhroom v0.2.0
+
+v0.2.0では、Webshellの特定・Base64の復号・不審プロセスの再出現を調べる演習を追加しました。 / Version 0.2.0 adds an investigation into webshell identification, Base64 decoding, and recurring suspicious processes.
 
 [すぐにやってみる / Play Now](https://retiacole.github.io/wazuhroom/) · [オフライン用HTML / Offline HTML](https://github.com/retiacole/wazuhroom/blob/main/wazuhroom.html)
 
@@ -24,18 +26,24 @@ roomシリーズの独立した追加教材です。メインのおすすめ学�
 
 ## 学習内容
 
-操作チュートリアル1件と調査演習6件を収録しています。
+操作チュートリアル1件と調査演習7件を収録しています。
 
 | 段階 | 件数 | 学ぶこと |
 | --- | --- | --- |
 | 操作チュートリアル | 1 | 期間指定、検索、詳細、証拠登録、資料、報告の基本操作 |
 | ガイド付き | 2 | 調べる理由を確認しながら、ログと承認資料を照合する |
 | チェックリスト | 2 | 必要な調査を組み立て、不審な変更や監視の途絶を確認する |
-| 自力で調査 | 2 | 背景イベントから必要な情報を選び、判断と引継ぎをまとめる |
+| 自力で調査 | 3 | 背景イベントから必要な情報を選び、判断と引継ぎをまとめる |
 
-認証、アカウント・サービスの変更、監視の途絶、ファイル変更を題材にしています。インシデント、正当な作業、情報不足で判断を保留するケースを含みます。アラートのレベルだけで判定せず、時刻、対象、ログの内容、承認範囲、収集できた情報を照合します。
+認証、アカウント・サービスの変更、監視の途絶、ファイル変更、Webサーバーの不審なプロセスと外部通信を題材にしています。インシデント、正当な作業、情報不足で判断を保留するケースを含みます。アラートのレベルだけで判定せず、時刻、対象、ログの内容、承認範囲、収集できた情報を照合します。
 
-全7件とも時間制限はなく、どの演習からでも始められます。各ケースには背景イベントと3段階のヒントがあり、最後のヒントには解答の手掛かりや判断例も含みます。報告を一度提出すると、合否にかかわらず報告例を開けます。ヒントや報告例を見ることによる減点はありません。自力で考えてから比較したい場合は、必要になるまで開かずに進めてください。
+v0.2.0では、Webサーバー上の不審プロセス、外部通信、対処後の再実行を照合する自力調査を追加しました。観測した挙動と不明な原因を分け、初期侵入経路、root権限の有無、同一主体による操作、完全な駆除を断定せずに引き継ぐ練習です。
+
+この演習では、POSTからWebshellへの要求を見つけ、サーバー内の所在を別の証拠で確かめ、POST本文のBase64を復号します。要求URI、サーバー上の絶対ファイルパス、復号したテキストを別々に回答します。URIから保存場所を推測せず、Web公開設定と読取り専用のファイル確認を照合します。証拠は7種類、選択上限は9件です。必須資料は収集範囲、OPS-218、WEB-219の3件です。
+
+Base64は独自に作成した非実行の疑似コードを符号化したものです。学習パネルでテキストとして復号し、表示上のエラーや要求変数の変更、メール送信要求の意図を読み取ります。実行・メール送信・外部通信は行いません。復号内容の `SCRIPT_NAME` や `REMOTE_ADDR` は、Webshellの実際の所在や通信相手を証明する値ではありません。3つの回答は正答との一致を確認し、挙動の意味と不明点は自由記述と報告例で振り返ります。
+
+全8件とも時間制限はなく、どの演習からでも始められます。各ケースには背景イベントと3段階のヒントがあり、最後のヒントには解答の手掛かりや判断例も含みます。報告を一度提出すると、合否にかかわらず報告例を開けます。ヒントや報告例を見ることによる減点はありません。自力で考えてから比較したい場合は、必要になるまで開かずに進めてください。
 
 証拠は必要なものに絞って提出します。証拠欄の数字は「選択数 / 上限」で、上限まで選ぶ必要はありません。すべてのイベントを証拠に選ぶだけではクリアできません。自由記述は入力の形式を確認するもので、文章の意味や推論の正しさを自動採点しません。模範例との比較に使ってください。この教材は自己学習用で、試験の成績評価や不正防止を目的としていません。
 
@@ -64,7 +72,7 @@ not syscheck.path:*
 
 フィールド指定、引用符付きの値、数値比較、`and` / `or` / `not`（大文字も可）、かっこ、フィールドの存在確認、対応する文字列フィールドの `*` を使えます。条件をつなぐ際は `and` または `or` を明示してください。
 
-識別子などのkeyword型は大小文字を区別した完全一致で、引用符なしの `*` をワイルドカードとして使えます。`full_log`、`rule.description`、`data.command`、`data.win.eventdata.commandLine` は大小文字を区別しない部分一致に簡略化しています。実際のOpenSearchの全文検索解析と同じ動作ではありません。
+識別子などのkeyword型は大小文字を区別した完全一致で、引用符なしの `*` をワイルドカードとして使えます。`full_log`、`rule.description`、`data.command`、`data.win.eventdata.commandLine`、`data.process.args`、`data.http.body_summary`、`data.http.response_summary`、`data.artifact.encoded_content`、`data.artifact.content_summary` は大小文字を区別しない部分一致に簡略化しています。実際のOpenSearchの全文検索解析と同じ動作ではありません。
 
 `rule.level`、`data.srcport`、`data.win.eventdata.logonType` など、この教材で数値型にしたフィールドは、`data.srcport: 43104` や `data.win.eventdata.logonType: 10` のように引用符なしの数値で検索します。`data.srcport: "43104"` は本教材ではエラーです。実機のイベントではポート番号やlogonTypeが文字列で出力される場合があり、検索時の扱いはインデックスのマッピングにも依存します。本教材の型を実機のすべてのフィールドへ当てはめないでください。
 
@@ -100,11 +108,17 @@ WQLはイベント検索のDQLとは異なります。教材では `id`、`name`
 
 読込時は、**現在の進捗をバックアップ**を押してから**読み込んで置き換える**を選びます。ブラウザのダウンロードが完了したことを確認してください。確認画面を閉じた場合や、不正な保存ファイルの場合は現在の進捗を置き換えません。SOCroomなど、ほかのroomの保存ファイルは読み込めません。提出後の**報告を書き出す**では、入力中の調査記録をテキストとして保存できます。
 
+v0.1系の7件分の保存データを読み込むと、既存の進捗・下書き・完了記録を維持して、追加演習を未開始として補います。元の演習の欠落や不正なデータは、旧形式として受け入れずエラーにします。
+
+以前の8件版で追加演習を終えていた場合も、今回増えた設問・証拠・資料は未完了として扱います。以前の提出内容は参考記録として残し、改訂した追加演習をもう一度確認して提出します。最初の7件の完了記録は維持します。製品の表示版はv0.2.0のままで、追加演習の内部改訂番号は2です。
+
 ## 再現の範囲
 
 Wazuh **4.14系の画面・用語・公開資料**を参考にした、非公式の独立した教材です。Wazuh社による提供・認定・支援を意味しません。公式ロゴや公式UIのソースコードは同梱していません。
 
 実際のWazuh、OpenSearch、エージェント、OSは動作していません。イベントは架空の合成データで、教材用のカスタムルールID（100001以降）を使います。標準ルールによる実際の検知結果ではありません。収集対象や観測の限界は各ケースの資料で確認してください。
+
+追加のWebサーバー調査は、一般化した行動パターンを参考に独自に作成した合成シナリオです。実在する記録の識別子だけを置換した再配布物ではありません。時刻、端末、人物・アカウント、パス、通信先、イベント、管理者メモなどの補完資料は教材用に構成しています。実際のパケットからWazuhイベントを変換したものでも、原観測の欠落を埋める事実でもありません。元資料、PCAP、画像、原文の固有文字列やペイロード、実値と架空値の対応表は配布しません。詳しい作成・匿名化方針は[参考資料](docs/REFERENCES.md#合成データと匿名化--synthetic-data-and-anonymization)を参照してください。
 
 実機との全画面・全操作の一致は検証していません。エージェントの導入、実ログの配送、ルールの実行、Active Response、端末隔離、実環境の負荷や検知精度を練習・検証する教材ではありません。実機に進む際は、利用するバージョンと収集設定を公式資料で確認してください。
 
@@ -127,7 +141,13 @@ The saved HTML includes the application and all teaching data. No installation, 
 
 ### Course and screens
 
-There is **one interface tutorial and six investigation cases**: two guided, two with checklists, and two independent. Topics include authentication, account and service changes, monitoring gaps, and file changes. The cases cover incidents requiring escalation, authorized work, and insufficient evidence. There are no time limits; start anywhere. Each case includes background events and three levels of hints. The final hint may include solution clues or an expected decision. After any report submission, whether it passes or fails, you can open the example report. Viewing hints or examples carries no penalty. Leave them closed until needed if you prefer to investigate independently first.
+There is **one interface tutorial and seven investigation cases**: two guided, two with checklists, and three independent. Topics include authentication, account and service changes, monitoring gaps, file changes, and suspicious web-server processes and outbound connections. The cases cover incidents requiring escalation, authorized work, and insufficient evidence. All eight exercises have no time limits; start anywhere. Each case includes background events and three levels of hints. The final hint may include solution clues or an expected decision. After any report submission, whether it passes or fails, you can open the example report. Viewing hints or examples carries no penalty. Leave them closed until needed if you prefer to investigate independently first.
+
+Version 0.2.0 adds an independent web-server investigation that correlates suspicious processes, outbound connections, and execution recurring after a response attempt. Practice distinguishing observed behavior from an unknown cause and handing over without claiming to know the initial entry route, root privileges, a shared actor, or complete eradication.
+
+The exercise also asks learners to find POST requests to a web shell, establish its location from separate host evidence, and decode Base64 in a POST body. Answer the request URI, absolute server-side file path, and decoded text separately. Cross-check the web-publication mapping and read-only file review instead of guessing a filesystem path from a URI. The case requires seven evidence types, with a selection limit of nine, and three references: collection scope, OPS-218, and WEB-219.
+
+The Base64 encodes independently authored, non-executable pseudocode. Decode it as text in the learning panel and interpret its requested changes to error display and request variables, and its email-delivery request. It does not execute code, send email, or make network requests. The decoded `SCRIPT_NAME` and `REMOTE_ADDR` do not establish the web shell's actual location or network peer. The three answers are checked against expected text; learners discuss behavioral meaning and uncertainty in the free-text report and compare it with the example.
 
 Use **Overview** for summaries, **Endpoints** for agent and endpoint status, **Threat Hunting** for event searches and details, and **File Integrity Monitoring** for file-change events. The separate learning panel contains assignments, hints, documents, evidence, reports, and reflection; these are Wazuhroom teaching features.
 
@@ -137,7 +157,7 @@ All times are UTC and belong to a fixed teaching timeline. Events outside the se
 
 Event search supports a documented **DQL subset**: field comparisons, quoted values, numeric ranges, `and` / `or` / `not` (also uppercase), parentheses, field existence, and unquoted `*` on supported keyword fields. Join conditions with an explicit `and` or `or`. The examples above apply in both languages.
 
-Keyword fields use case-sensitive exact matching. Searches in `full_log`, `rule.description`, `data.command`, and `data.win.eventdata.commandLine` use simplified case-insensitive substring matching, which does not reproduce OpenSearch's full-text analyzer. Unqualified free-text searches, Lucene, regular expressions, scripts, arbitrary mappings, and a complete search backend are not included.
+Keyword fields use case-sensitive exact matching. Searches in `full_log`, `rule.description`, `data.command`, `data.win.eventdata.commandLine`, `data.process.args`, `data.http.body_summary`, `data.http.response_summary`, `data.artifact.encoded_content`, and `data.artifact.content_summary` use simplified case-insensitive substring matching, which does not reproduce OpenSearch's full-text analyzer. Unqualified free-text searches, Lucene, regular expressions, scripts, arbitrary mappings, and a complete search backend are not included.
 
 Fields modeled as numbers here, including `rule.level`, `data.srcport`, and `data.win.eventdata.logonType`, require unquoted numbers: for example, `data.srcport: 43104` or `data.win.eventdata.logonType: 10`. The simulator rejects `data.srcport: "43104"`. Real event payloads may represent ports or logonType as strings, and query behavior also depends on the index mapping. Do not generalize this simulator's field types to every real deployment.
 
@@ -149,11 +169,17 @@ The initial language follows the browser's preferred language: Japanese for Japa
 
 Progress is saved in this room's own browser storage. Local-file restrictions or browser settings may prevent automatic saves; export a progress JSON using **Save** as a portable backup. Use **Load** to transfer it to another browser, device, or the online version. Choose **Back up current progress**, check that the browser completed the download, then select **Import and replace**. Closing the import dialog or loading invalid data leaves the current progress unchanged. Other rooms' save files are not compatible. Editing a draft after completion retains the earlier successful completion record. After submission, **Export report** saves the current investigation draft as readable text.
 
+Loading a v0.1 save containing all seven original exercises preserves their progress, drafts, and completion records and adds the new exercise as not started. Missing original exercises or otherwise invalid data are rejected rather than treated as a legacy save.
+
+If the added exercise was completed in an earlier eight-case build, its newly required questions, evidence, and reference material remain unfinished. The earlier submission is retained as a reference record; review and submit the revised exercise again. Completion of the original seven exercises is preserved. The displayed product version remains v0.2.0; the added case now has internal revision 2.
+
 ### Scope
 
 This unofficial, independent simulator references **Wazuh 4.14** UI concepts, terminology, and public documentation. It is not provided, certified, or endorsed by Wazuh. It does not bundle the official logo or UI source code.
 
 Wazuh, OpenSearch, agents, and operating systems do not run inside this application. All events are synthetic and use teaching-specific custom rule IDs starting at 100001. They are not recorded detections from the standard Wazuh ruleset. Each case explains its assumed collection settings and visibility limits.
+
+The added web-server case is an original synthetic scenario informed by generalized behavior patterns. It is not a redistribution of real records with identifiers substituted. Times, endpoints, people and accounts, paths, destinations, events, and supporting material such as administrator notes are authored for teaching. These are not Wazuh events converted from real packets or additional facts filling gaps in original observations. Source documents, PCAPs, images, original identifying strings or payloads, and mappings between real and fictional values are not distributed. See the [synthetic-data and anonymization policy](docs/REFERENCES.md#合成データと匿名化--synthetic-data-and-anonymization).
 
 Full screen-by-screen and operation-by-operation equivalence with a live Wazuh deployment has not been verified. Agent deployment, real log delivery, rules execution, Active Response, endpoint isolation, production performance, and detection accuracy are outside this course. Check the official documentation for the version and configuration you use when moving to a real environment.
 
@@ -188,9 +214,9 @@ node --test
 
 The three distribution files contain the same standalone application. Edit the sources and rebuild instead of editing generated HTML.
 
-開発用のDOMテストだけでjsdomを使用します。配布HTMLには外部ライブラリーを読み込む処理はありません。自動検証は、日英の全7件の画面操作・検索・採点・保存を対象にしています。v0.1.0公開時の実ブラウザ確認は、調査から報告、保存と復元、幅390pxと1440pxの表示を対象にしました。v0.1.1では57件の自動テストを通過し、旧版の保存データの復元も確認しました。実ブラウザで必須資料・手順の表示、英語の検索ヘルプと数値検索、幅390pxの報告画面を確認しています。Firefox・Safariの実機検証は未実施です。
+開発用のDOMテストだけでjsdomを使用します。配布HTMLには外部ライブラリーを読み込む処理はありません。自動検証の対象は、日英の全8件の画面操作・検索・採点・保存、改訂前の保存データの移行、追加設問、Base64のテキスト復号、架空識別子の条件です。元識別子候補とのローカル照合は、原資料を収録しない方針と人によるレビューを補うもので、完全な匿名化を保証しません。Firefox・Safariの実機検証は未実施です。
 
-jsdom is used only for development tests. The distributed HTML loads no external libraries. Automated checks cover all seven cases in both languages, UI operations, search, assessment, and saves. Browser checks for the v0.1.0 release covered investigation through reporting, export/import, and 390px/1440px layouts. Version 0.1.1 passes 57 automated tests, including restoration of v0.1.0 saves. Browser checks cover required references and instructions, English search help and numeric search, and the report at 390px width. Firefox and Safari have not been directly tested.
+jsdom is used only for development tests; the distributed HTML loads no external libraries. Automated validation covers all eight cases in both languages, UI operations, search, assessment, saves, migration of earlier saves, the added questions, Base64 text decoding, and fictional identifier constraints. Local original-identifier candidate checks supplement source exclusion and human review; they do not guarantee complete anonymization. Firefox and Safari have not been directly tested.
 
 ## ライセンスと謝辞 / License and acknowledgments
 
