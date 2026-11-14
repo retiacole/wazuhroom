@@ -224,3 +224,21 @@ test('revised crypto case preserves an earlier submission visibly without claimi
   assert.equal(u.errors.length,0);
  }finally{u.dom.window.close();}
 });
+
+
+test('view navigation focuses content and search rerenders preserve input and caret',()=>{
+ const u=setup('ja');
+ try{
+  u.click('[data-action="case"][data-id="tutorial"]');
+  const view=u.d.querySelector('[data-view="events"]');view.focus();view.click();
+  assert.ok(u.d.querySelector('main').contains(u.d.activeElement));
+  const input=u.d.querySelector('#event-query');input.focus();u.fill('#event-query','rule.level >= 3');input.setSelectionRange(4,7);
+  u.submit('event-search');
+  assert.equal(u.d.activeElement.id,'event-query');
+  assert.equal(u.d.activeElement.selectionStart,4);assert.equal(u.d.activeElement.selectionEnd,7);
+  u.click('[data-action="search-help"]');
+  const dialog=u.d.querySelector('dialog');
+  assert.ok(u.d.getElementById(dialog.getAttribute('aria-labelledby')).textContent.trim());
+  assert.equal(u.errors.length,0);
+ }finally{u.dom.window.close();}
+});

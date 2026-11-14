@@ -106,7 +106,7 @@
     document.querySelectorAll('[data-answer]').forEach(el=>{record().report.answers[el.dataset.answer]=el.value;});
   }
   function header() {
-    return `<header class="topbar">${btn('home','', 'brand', 'aria-label="Wazuhroom"').replace('</button>', '<span class="brand-icon" aria-hidden="true">W</span><span><strong>Wazuhroom</strong><br><span class="version">v'+esc(document.body.dataset.version)+' · '+esc(t('simulation'))+'</span></span></button>')}<div class="top-actions"><label for="language" class="sr-only" hidden>Language</label><select id="language" aria-label="Language"><option value="ja" ${progress.language==='ja'?'selected':''}>日本語</option><option value="en" ${progress.language==='en'?'selected':''}>English</option></select>${btn('save',t('save'),'small')}${btn('load',t('load'),'small')}${btn('help',t('help'),'small')}</div></header>`;
+    return `<header class="topbar">${btn('home','', 'brand').replace('</button>', '<span class="brand-icon" aria-hidden="true">W</span><span><strong>Wazuhroom</strong><br><span class="version">v'+esc(document.body.dataset.version)+' · '+esc(t('simulation'))+'</span></span></button>')}<div class="top-actions"><label for="language" class="sr-only" hidden>Language</label><select id="language" aria-label="Language"><option value="ja" ${progress.language==='ja'?'selected':''}>日本語</option><option value="en" ${progress.language==='en'?'selected':''}>English</option></select>${btn('save',t('save'),'small')}${btn('load',t('load'),'small')}${btn('help',t('help'),'small')}</div></header>`;
   }
   function renderHome() {
     const count=completedCount();
@@ -130,7 +130,7 @@
     const r=record(),start=Date.parse(r.from),end=Date.parse(r.to),width=Math.max(1,(end-start)/12),bins=Array(12).fill(0);
     events.forEach(e=>{const i=Math.min(11,Math.max(0,Math.floor((Date.parse(e.timestamp)-start)/width)));bins[i]++;});
     const max=Math.max(1,...bins);
-    return `<div class="chart-title"><h3>${esc(t('chart'))}</h3><small>${esc(t('chartHint'))}</small></div><div class="chart">${bins.map((n,i)=>`<button type="button" data-action="chart-range" data-from="${new Date(start+i*width).toISOString()}" data-to="${new Date(i===11?end:start+(i+1)*width-1).toISOString()}" style="height:${Math.max(2,n/max*77)}px" aria-label="${esc(time(new Date(start+i*width).toISOString()))} UTC: ${n}"><span>${n||''}</span></button>`).join('')}</div><div class="chart-axis"><span>${esc(time(r.from))}</span><span>${esc(time(r.to))} UTC</span></div>`;
+    return `<div class="chart-title"><h3>${esc(t('chart'))}</h3><small>${esc(t('chartHint'))}</small></div><div class="chart">${bins.map((n,i)=>`<button type="button" data-action="chart-range" data-from="${new Date(start+i*width).toISOString()}" data-to="${new Date(i===11?end:start+(i+1)*width-1).toISOString()}" style="--bar-height:${Math.max(2,n/max*77)}px" aria-label="${esc(time(new Date(start+i*width).toISOString()))} UTC: ${n}"><span>${n||''}</span></button>`).join('')}</div><div class="chart-axis"><span>${esc(time(r.from))}</span><span>${esc(time(r.to))} UTC</span></div>`;
   }
   function fieldRows(event) {
     const rows=[];
@@ -193,15 +193,26 @@
     const missingDocs=c.documents.filter(d=>c.answer.documentIds.includes(d.id)&&!r.documents.includes(d.id));
     return `<h3>${esc(t('evidence'))} <span class="muted">${esc(countLabel)}</span></h3><p class="footer-note">${esc(t('evidenceNote'))}</p><div id="evidence-list">${r.evidence.length?r.evidence.map(id=>{const e=c.events.find(x=>x.id===id);return `<div class="evidence-item"><span><code>${esc(id)}</code><br>${esc(e.rule.description)}</span>${btn('evidence-remove','×','small',`data-id="${esc(id)}" aria-label="${esc(t('remove')+' '+id)}"`)}</div>`;}).join(''):`<p class="muted">${esc(t('noEvidence'))}</p>`}</div>${renderPreviousSubmission()}<form id="report-form" style="margin-top:18px">${renderQuestions()}<div class="report-grid">${[['verdict',['incident','benign','unknown']],['priority',['high','medium','low']],['action',['escalate','monitor','verify']]].map(([key,choices])=>`<div><label for="report-${key}">${esc(t(key))}</label><select id="report-${key}" data-report="${key}">${options(choices,a[key])}</select></div>`).join('')}<div><label for="report-target">${esc(t('target'))}</label><select id="report-target" data-report="target"><option value="">${esc(t('select'))}</option>${c.agents.map(x=>`<option value="${esc(x.id)}" ${a.target===x.id?'selected':''}>${esc(x.name)} (${esc(x.id)})</option>`).join('')}</select></div></div><div class="report-field"><label for="report-facts">${esc(t('facts'))}</label><textarea id="report-facts" data-report="facts" maxlength="4000" placeholder="${esc(t('factsPlaceholder'))}">${esc(a.facts)}</textarea></div><div class="report-field"><label for="report-nextStep">${esc(t('nextStep'))}</label><textarea id="report-nextStep" data-report="nextStep" maxlength="4000" placeholder="${esc(t('nextPlaceholder'))}">${esc(a.nextStep)}</textarea></div><p class="footer-note">${esc(t('structural'))}</p><button type="submit" class="primary">${esc(t('submit'))}</button></form>${r.feedback?`<div class="review"><h3>${esc(t(r.feedback.passed?'passed':'tryAgain'))}</h3><ul class="checks">${r.feedback.checks.map(x=>`<li class="${x.passed?'yes':'no'}">${x.passed?'✓':'○'} ${esc(questionLabel(x.key))}</li>`).join('')}</ul>${missingDocs.length?`<p class="missing-docs">${esc(t('missingDocs'))}: ${missingDocs.map(d=>esc(tx(d.title))).join(' / ')}</p>`:''}${r.feedback.passed?`<div class="success">${esc(t('modelNote'))}</div>`:''}<p class="footer-note">${esc(t('selfStudy'))}</p>${btn('show-model',t('showModel'),'small')} ${btn('export-report',t('exportReport'),'quiet small')}${modelOpen?`<div class="review"><h3>${esc(t('model'))}</h3><p><strong>${esc(t('verdict'))}:</strong> ${esc(t(c.answer.verdict))}<br><strong>${esc(t('priority'))}:</strong> ${esc(t(c.answer.priority))}<br><strong>${esc(t('action'))}:</strong> ${esc(t(c.answer.action))}</p>${c.questions?.length?`<h3>${esc(t('findings'))}</h3>${c.questions.map(q=>`<p><strong>${esc(tx(q.label))}</strong></p><pre>${esc(q.acceptedAnswers[0])}</pre>`).join('')}`:''}<h3>${esc(t('facts'))}</h3><p>${esc(tx(c.answer.facts))}</p><h3>${esc(t('nextStep'))}</h3><p>${esc(tx(c.answer.nextStep))}</p><p>${esc(tx(c.answer.explanation))}</p></div>`:''}${r.completed?`<div style="margin-top:18px">${C.cases.indexOf(c)<C.cases.length-1?btn('next-case',t('nextCase'),'primary small'):btn('home',t('home'),'primary small')}</div>`:''}</div>`:''}`;
   }
-  function render() {
+  function render(focusHeading=false) {
+    const activeElement=document.activeElement,inside=app.contains(activeElement);
+    const identity=inside?{id:activeElement.id,tag:activeElement.tagName,data:Object.entries(activeElement.dataset)}:null;
+    const selection=inside&&typeof activeElement.selectionStart==='number'?[activeElement.selectionStart,activeElement.selectionEnd]:null;
     document.documentElement.lang=progress.language;document.title='Wazuhroom — '+t('workflow');
     app.innerHTML=header()+(home?renderHome():renderLab());
     if(!home && (active().stage==='tutorial'||active().stage==='guided') && tab==='task') highlight();
+    let target=!focusHeading&&identity?.id?document.getElementById(identity.id):null;
+    if(!target&&!focusHeading&&identity?.data.length)target=Array.from(app.querySelectorAll(identity.tag)).find(el=>identity.data.every(([key,value])=>el.dataset[key]===value));
+    if((focusHeading||inside)&&(!target||target.disabled)){
+      target=app.querySelector('main h1,main h2')||app.querySelector('main');
+      if(target)target.tabIndex=-1;
+    }
+    if(target){target.focus({preventScroll:true});if(selection&&target===document.activeElement&&typeof target.setSelectionRange==='function')try{target.setSelectionRange(...selection);}catch{}}
+
   }
   function highlight() {const r=record(),step=active().steps.find(s=>s.kind==='report'?!r.completed:!r.operations.includes(s.kind));if(!step)return;const selectors={events:'[data-view="events"]',range:'#time-range',search:'#event-search',detail:'.expand-btn',evidence:'[data-action="evidence-add"]',document:'[data-tab="refs"]',report:'[data-tab="report"]'};document.querySelector(selectors[step.kind])?.classList.add('guide-target');}
-  function setCase(id) { syncDraft();progress.activeCaseId=id;home=false;tab='task';page=0;agentQuery='';agentDraft='';queryDraft=record().query;fromDraft=dt(record().from);toDraft=dt(record().to);searchError='';modelOpen=false;saveLocal();render();window.scrollTo(0,0); }
-  function setView(view) {syncDraft();record().view=view;page=0;searchError='';if(view==='events'||view==='fim')op('events');saveLocal();render();}
-  function modal(title,body,actions='') {document.getElementById('dialog-body').innerHTML=`<div class="dialog-head"><h2>${esc(title)}</h2>${btn('close-dialog','×','quiet','aria-label="'+esc(t('close'))+'"')}</div>${body}${actions?'<div class="dialog-actions">'+actions+'</div>':''}`;if(!dialog.open)dialog.showModal();}
+  function setCase(id) { syncDraft();progress.activeCaseId=id;home=false;tab='task';page=0;agentQuery='';agentDraft='';queryDraft=record().query;fromDraft=dt(record().from);toDraft=dt(record().to);searchError='';modelOpen=false;saveLocal();render(true);window.scrollTo(0,0); }
+  function setView(view) {syncDraft();record().view=view;page=0;searchError='';if(view==='events'||view==='fim')op('events');saveLocal();render(true);}
+  function modal(title,body,actions='') {document.getElementById('dialog-body').innerHTML=`<div class="dialog-head"><h2 id="dialog-title">${esc(title)}</h2>${btn('close-dialog','×','quiet','aria-label="'+esc(t('close'))+'"')}</div>${body}${actions?'<div class="dialog-actions">'+actions+'</div>':''}`;if(!dialog.open)dialog.showModal();}
   function help(searchOnly=false) {
     const examples=String.raw`agent.name: "web-01" and rule.level >= 5
 rule.groups: "authentication_failed"
@@ -227,7 +238,7 @@ name~web</pre><details><summary>${esc(t('fieldCount'))}</summary><pre>${Object.e
   function handle(action,el) {
     syncDraft();const r=record(),c=active();
     switch(action){
-      case 'home':home=true;saveLocal();render();window.scrollTo(0,0);break;
+      case 'home':home=true;saveLocal();render(true);window.scrollTo(0,0);break;
       case 'case':setCase(el.dataset.id);break;
       case 'view':setView(el.dataset.view);break;
       case 'coach-tab':tab=el.dataset.tab;render();if(innerWidth<=680)document.querySelector('.coach').scrollIntoView();break;
