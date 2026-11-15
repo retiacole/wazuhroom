@@ -122,6 +122,12 @@ Wazuh **4.14系の画面・用語・公開資料**を参考にした、非公式
 
 実機との全画面・全操作の一致は検証していません。エージェントの導入、実ログの配送、ルールの実行、Active Response、端末隔離、実環境の負荷や検知精度を練習・検証する教材ではありません。実機に進む際は、利用するバージョンと収集設定を公式資料で確認してください。
 
+## 質問・不具合の報告
+
+[**質問・不具合を報告する**](https://github.com/retiacole/wazuhroom/issues/new/choose)
+
+教材で分かりにくかった点や改善案、動作の問題はGitHub Issuesへお寄せください。リンク先で「質問・改善提案」または「不具合の報告」を選べます。日本語・英語どちらでも受け付けています。投稿にはGitHubアカウントが必要で、内容は公開されます。会社の機密情報や個人情報は含めないでください。
+
 ## English
 
 Wazuhroom is a browser-based educational simulation for practicing the basic SOC workflow with Wazuh-style screens: review an alert, choose a time range, filter events, inspect details and raw logs, cross-check reference material, and record a supported decision and handover. Learners do not need to run Wazuh or prepare monitored endpoints.
@@ -182,6 +188,12 @@ Wazuh, OpenSearch, agents, and operating systems do not run inside this applicat
 The added web-server case is an original synthetic scenario informed by generalized behavior patterns. It is not a redistribution of real records with identifiers substituted. Times, endpoints, people and accounts, paths, destinations, events, and supporting material such as administrator notes are authored for teaching. These are not Wazuh events converted from real packets or additional facts filling gaps in original observations. Source documents, PCAPs, images, original identifying strings or payloads, and mappings between real and fictional values are not distributed. See the [synthetic-data and anonymization policy](docs/REFERENCES.md#合成データと匿名化--synthetic-data-and-anonymization).
 
 Full screen-by-screen and operation-by-operation equivalence with a live Wazuh deployment has not been verified. Agent deployment, real log delivery, rules execution, Active Response, endpoint isolation, production performance, and detection accuracy are outside this course. Check the official documentation for the version and configuration you use when moving to a real environment.
+
+### Questions and feedback
+
+[**Ask a question or report a problem**](https://github.com/retiacole/wazuhroom/issues/new/choose)
+
+Use GitHub Issues for questions, suggestions, or problems with the course. Choose “Question or suggestion” or “Bug report” on the next page. Japanese and English are welcome. Posting requires a GitHub account, and posts are public. Please leave out confidential or personal information.
 
 ## 開発 / Development
 
